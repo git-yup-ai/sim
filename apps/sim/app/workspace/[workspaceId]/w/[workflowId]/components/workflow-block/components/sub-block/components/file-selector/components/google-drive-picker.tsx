@@ -47,6 +47,7 @@ interface GoogleDrivePickerProps {
   clientId: string
   apiKey: string
   credentialId?: string
+  onCredentialChange?: (credentialId: string) => void
   workflowId?: string
 }
 
@@ -64,10 +65,10 @@ export function GoogleDrivePicker({
   clientId,
   apiKey,
   credentialId,
+  onCredentialChange,
   workflowId,
 }: GoogleDrivePickerProps) {
   const [credentials, setCredentials] = useState<Credential[]>([])
-  const [selectedCredentialId, setSelectedCredentialId] = useState<string>('')
   const [selectedFileId, setSelectedFileId] = useState(value)
   const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -101,7 +102,7 @@ export function GoogleDrivePicker({
         const data = await response.json()
         setCredentials(data.credentials)
         if (credentialId && !data.credentials.some((c: any) => c.id === credentialId)) {
-          setSelectedCredentialId('')
+          onCredentialChange?.('')
         }
       }
     } catch (error) {
@@ -110,25 +111,18 @@ export function GoogleDrivePicker({
       setIsLoading(false)
       setCredentialsLoaded(true)
     }
-  }, [provider, getProviderId, selectedCredentialId])
-
-  // Prefer persisted credentialId if provided
-  useEffect(() => {
-    if (credentialId && credentialId !== selectedCredentialId) {
-      setSelectedCredentialId(credentialId)
-    }
-  }, [credentialId, selectedCredentialId])
+  }, [provider, credentialId])
 
   // Fetch a single file by ID when we have a selectedFileId but no metadata
   const fetchFileById = useCallback(
     async (fileId: string) => {
-      if (!selectedCredentialId || !fileId) return null
+      if (!credentialId || !fileId) return null
 
       setIsLoadingSelectedFile(true)
       try {
         // Construct query parameters
         const queryParams = new URLSearchParams({
-          credentialId: selectedCredentialId,
+          credentialId: credentialId,
           fileId: fileId,
         })
         if (workflowId) queryParams.set('workflowId', workflowId)
@@ -170,7 +164,7 @@ export function GoogleDrivePicker({
         setIsLoadingSelectedFile(false)
       }
     },
-    [selectedCredentialId, onChange, onFileInfoChange]
+    [credentialId, onChange, onFileInfoChange]
   )
 
   // Fetch credentials on initial mount
@@ -199,47 +193,34 @@ export function GoogleDrivePicker({
   // Clear selected file when credentials are removed or changed
   useEffect(() => {
     const prevCredentialId = prevCredentialIdRef.current
-    prevCredentialIdRef.current = selectedCredentialId
+    prevCredentialIdRef.current = credentialId || ''
 
-    if (!selectedCredentialId) {
+    if (!credentialId) {
       // No credentials - clear everything
       if (selectedFile) {
         setSelectedFile(null)
         setSelectedFileId('')
         onChange('')
       }
-    } else if (prevCredentialId && prevCredentialId !== selectedCredentialId) {
+    } else if (prevCredentialId && prevCredentialId !== credentialId) {
       // Credentials changed (not initial load) - clear file info to force refetch
       if (selectedFile) {
         setSelectedFile(null)
       }
     }
-  }, [selectedCredentialId, selectedFile, onChange])
+  }, [credentialId, selectedFile, onChange])
 
   // Fetch the selected file metadata once credentials are loaded or changed
   useEffect(() => {
     // Only fetch if we have both a file ID and credentials, credentials are loaded, but no file info yet
-    if (
-      value &&
-      selectedCredentialId &&
-      credentialsLoaded &&
-      !selectedFile &&
-      !isLoadingSelectedFile
-    ) {
+    if (value && credentialId && credentialsLoaded && !selectedFile && !isLoadingSelectedFile) {
       fetchFileById(value)
     }
-  }, [
-    value,
-    selectedCredentialId,
-    credentialsLoaded,
-    selectedFile,
-    isLoadingSelectedFile,
-    fetchFileById,
-  ])
+  }, [value, credentialId, credentialsLoaded, selectedFile, isLoadingSelectedFile, fetchFileById])
 
   // Fetch the access token for the selected credential
   const fetchAccessToken = async (credentialOverrideId?: string): Promise<string | null> => {
-    const effectiveCredentialId = credentialOverrideId || selectedCredentialId
+    const effectiveCredentialId = credentialOverrideId || credentialId
     if (!effectiveCredentialId) {
       logger.error('No credential ID selected for Google Drive Picker')
       return null
@@ -442,10 +423,10 @@ export function GoogleDrivePicker({
           disabled={disabled || isLoading}
           onClick={async () => {
             // Decide which credential to use
-            let idToUse = selectedCredentialId
+            let idToUse = credentialId
             if (!idToUse && credentials.length === 1) {
               idToUse = credentials[0].id
-              setSelectedCredentialId(idToUse)
+              onCredentialChange?.(idToUse)
             }
 
             if (!idToUse) {
@@ -463,7 +444,7 @@ export function GoogleDrivePicker({
                 {getFileIcon(selectedFile, 'sm')}
                 <span className='truncate font-normal'>{selectedFile.name}</span>
               </>
-            ) : selectedFileId && isLoadingSelectedFile && selectedCredentialId ? (
+            ) : selectedFileId && isLoadingSelectedFile && credentialId ? (
               <>
                 <RefreshCw className='h-4 w-4 animate-spin' />
                 <span className='truncate text-muted-foreground'>Loading document...</span>

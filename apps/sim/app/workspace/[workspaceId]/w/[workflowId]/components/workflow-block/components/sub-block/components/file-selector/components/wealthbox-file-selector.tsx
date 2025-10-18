@@ -44,6 +44,7 @@ interface WealthboxFileSelectorProps {
   onFileInfoChange?: (itemInfo: WealthboxItemInfo | null) => void
   itemType?: 'contact'
   credentialId?: string
+  onCredentialChange?: (credentialId: string) => void
 }
 
 export function WealthboxFileSelector({
@@ -58,10 +59,10 @@ export function WealthboxFileSelector({
   onFileInfoChange,
   itemType = 'contact',
   credentialId,
+  onCredentialChange,
 }: WealthboxFileSelectorProps) {
   const [open, setOpen] = useState(false)
   const [credentials, setCredentials] = useState<Credential[]>([])
-  const [selectedCredentialId, setSelectedCredentialId] = useState<string>(credentialId || '')
   const [selectedItemId, setSelectedItemId] = useState(value)
   const [selectedItem, setSelectedItem] = useState<WealthboxItemInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -103,26 +104,19 @@ export function WealthboxFileSelector({
       setIsLoading(false)
       setCredentialsLoaded(true)
     }
-  }, [provider, getProviderId, selectedCredentialId])
-
-  // Keep local credential state in sync with persisted credential
-  useEffect(() => {
-    if (credentialId && credentialId !== selectedCredentialId) {
-      setSelectedCredentialId(credentialId)
-    }
-  }, [credentialId, selectedCredentialId])
+  }, [provider])
 
   // Debounced search function
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null)
 
   // Fetch available items for the selected credential
   const fetchAvailableItems = useCallback(async () => {
-    if (!selectedCredentialId) return
+    if (!credentialId) return
 
     setIsLoadingItems(true)
     try {
       const queryParams = new URLSearchParams({
-        credentialId: selectedCredentialId,
+        credentialId: credentialId,
         type: itemType,
       })
 
@@ -147,17 +141,17 @@ export function WealthboxFileSelector({
     } finally {
       setIsLoadingItems(false)
     }
-  }, [selectedCredentialId, searchQuery, itemType])
+  }, [credentialId, searchQuery, itemType])
 
   // Fetch a single item by ID
   const fetchItemById = useCallback(
     async (itemId: string) => {
-      if (!selectedCredentialId || !itemId) return null
+      if (!credentialId || !itemId) return null
 
       setIsLoadingSelectedItem(true)
       try {
         const queryParams = new URLSearchParams({
-          credentialId: selectedCredentialId,
+          credentialId: credentialId,
           itemId: itemId,
           type: itemType,
         })
@@ -190,7 +184,7 @@ export function WealthboxFileSelector({
         setIsLoadingSelectedItem(false)
       }
     },
-    [selectedCredentialId, itemType, onFileInfoChange, onChange]
+    [credentialId, itemType, onFileInfoChange, onChange]
   )
 
   // Fetch credentials on initial mount
@@ -203,17 +197,17 @@ export function WealthboxFileSelector({
 
   // Fetch available items only when dropdown is opened
   useEffect(() => {
-    if (selectedCredentialId && open) {
+    if (credentialId && open) {
       fetchAvailableItems()
     }
-  }, [selectedCredentialId, open, fetchAvailableItems])
+  }, [credentialId, open, fetchAvailableItems])
 
   // Fetch the selected item metadata only once when needed
   useEffect(() => {
     if (
       value &&
       value !== selectedItemId &&
-      selectedCredentialId &&
+      credentialId &&
       credentialsLoaded &&
       !selectedItem &&
       !isLoadingSelectedItem
@@ -223,7 +217,7 @@ export function WealthboxFileSelector({
   }, [
     value,
     selectedItemId,
-    selectedCredentialId,
+    credentialId,
     credentialsLoaded,
     selectedItem,
     isLoadingSelectedItem,
@@ -242,14 +236,14 @@ export function WealthboxFileSelector({
 
       // Set new timeout for search
       const timeout = setTimeout(() => {
-        if (selectedCredentialId) {
+        if (credentialId) {
           fetchAvailableItems()
         }
       }, 300) // 300ms debounce
 
       setSearchTimeout(timeout)
     },
-    [selectedCredentialId, fetchAvailableItems, searchTimeout]
+    [credentialId, fetchAvailableItems, searchTimeout]
   )
 
   // Cleanup timeout on unmount
@@ -324,7 +318,7 @@ export function WealthboxFileSelector({
                   <WealthboxIcon className='h-4 w-4' />
                   <span className='truncate font-normal'>{selectedItem.name}</span>
                 </div>
-              ) : selectedItemId && isLoadingSelectedItem && selectedCredentialId ? (
+              ) : selectedItemId && isLoadingSelectedItem && credentialId ? (
                 <div className='flex items-center gap-2'>
                   <RefreshCw className='h-4 w-4 animate-spin' />
                   <span className='text-muted-foreground'>Loading...</span>
@@ -362,13 +356,13 @@ export function WealthboxFileSelector({
                       <CommandItem
                         key={cred.id}
                         value={`account-${cred.id}`}
-                        onSelect={() => setSelectedCredentialId(cred.id)}
+                        onSelect={() => onCredentialChange?.(cred.id)}
                       >
                         <div className='flex items-center gap-2'>
                           <WealthboxIcon className='h-4 w-4' />
                           <span className='font-normal'>{cred.name}</span>
                         </div>
-                        {cred.id === selectedCredentialId && <Check className='ml-auto h-4 w-4' />}
+                        {cred.id === credentialId && <Check className='ml-auto h-4 w-4' />}
                       </CommandItem>
                     ))}
                   </CommandGroup>

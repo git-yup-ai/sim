@@ -57,6 +57,7 @@ interface MicrosoftFileSelectorProps {
   planId?: string
   workflowId?: string
   credentialId?: string
+  onCredentialChange?: (credentialId: string) => void
   isForeignCredential?: boolean
 }
 
@@ -73,11 +74,11 @@ export function MicrosoftFileSelector({
   planId,
   workflowId,
   credentialId,
+  onCredentialChange,
   isForeignCredential = false,
 }: MicrosoftFileSelectorProps) {
   const [open, setOpen] = useState(false)
   const [credentials, setCredentials] = useState<Credential[]>([])
-  const [selectedCredentialId, setSelectedCredentialId] = useState<string>(credentialId || '')
   const [selectedFileId, setSelectedFileId] = useState(value)
   const [selectedFile, setSelectedFile] = useState<MicrosoftFileInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -121,10 +122,10 @@ export function MicrosoftFileSelector({
         setCredentials(data.credentials)
 
         // If a credentialId prop is provided (collaborator case), do not auto-select
-        if (!credentialId && data.credentials.length > 0 && !selectedCredentialId) {
+        if (!credentialId && data.credentials.length > 0 && !credentialId) {
           const defaultCred = data.credentials.find((cred: Credential) => cred.isDefault)
-          if (defaultCred) setSelectedCredentialId(defaultCred.id)
-          else if (data.credentials.length === 1) setSelectedCredentialId(data.credentials[0].id)
+          if (defaultCred) onCredentialChange?.(defaultCred.id)
+          else if (data.credentials.length === 1) onCredentialChange?.(data.credentials[0].id)
         }
       }
     } catch (error) {
@@ -133,23 +134,16 @@ export function MicrosoftFileSelector({
       setIsLoading(false)
       setCredentialsLoaded(true)
     }
-  }, [provider, getProviderId, selectedCredentialId, credentialId])
-
-  // Keep internal credential in sync with prop
-  useEffect(() => {
-    if (credentialId && credentialId !== selectedCredentialId) {
-      setSelectedCredentialId(credentialId)
-    }
-  }, [credentialId, selectedCredentialId])
+  }, [provider, getProviderId, credentialId, credentialId])
 
   // Fetch available files for the selected credential
   const fetchAvailableFiles = useCallback(async () => {
-    if (!selectedCredentialId || isForeignCredential) return
+    if (!credentialId || isForeignCredential) return
 
     setIsLoadingFiles(true)
     try {
       const queryParams = new URLSearchParams({
-        credentialId: selectedCredentialId,
+        credentialId: credentialId,
       })
 
       // Add search query if provided
@@ -188,12 +182,12 @@ export function MicrosoftFileSelector({
     } finally {
       setIsLoadingFiles(false)
     }
-  }, [selectedCredentialId, searchQuery, serviceId, isForeignCredential])
+  }, [credentialId, searchQuery, serviceId, isForeignCredential])
 
   // Fetch a single file by ID when we have a selectedFileId but no metadata
   const fetchFileById = useCallback(
     async (fileId: string) => {
-      if (!selectedCredentialId || !fileId) return null
+      if (!credentialId || !fileId) return null
 
       setIsLoadingSelectedFile(true)
       try {
@@ -202,7 +196,7 @@ export function MicrosoftFileSelector({
           const tokenRes = await fetch('/api/auth/oauth/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ credentialId: selectedCredentialId, workflowId }),
+            body: JSON.stringify({ credentialId: credentialId, workflowId }),
           })
           if (!tokenRes.ok) {
             const err = await tokenRes.text()
@@ -259,7 +253,7 @@ export function MicrosoftFileSelector({
         const tokenRes = await fetch('/api/auth/oauth/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credentialId: selectedCredentialId, workflowId }),
+          body: JSON.stringify({ credentialId: credentialId, workflowId }),
         })
         if (!tokenRes.ok) return null
         const { accessToken: spToken } = await tokenRes.json()
@@ -288,19 +282,14 @@ export function MicrosoftFileSelector({
         setIsLoadingSelectedFile(false)
       }
     },
-    [selectedCredentialId, onFileInfoChange, serviceId, workflowId, onChange]
+    [credentialId, onFileInfoChange, serviceId, workflowId, onChange]
   )
 
   // Fetch Microsoft Planner tasks when planId and credentials are available
   const fetchPlannerTasks = useCallback(async () => {
-    if (
-      !selectedCredentialId ||
-      !planId ||
-      serviceId !== 'microsoft-planner' ||
-      isForeignCredential
-    ) {
+    if (!credentialId || !planId || serviceId !== 'microsoft-planner' || isForeignCredential) {
       logger.info('Skipping task fetch - missing requirements:', {
-        selectedCredentialId: !!selectedCredentialId,
+        credentialId: !!credentialId,
         planId: !!planId,
         serviceId,
         isForeignCredential,
@@ -309,7 +298,7 @@ export function MicrosoftFileSelector({
     }
 
     logger.info('Fetching Planner tasks with:', {
-      credentialId: selectedCredentialId,
+      credentialId: credentialId,
       planId,
       serviceId,
     })
@@ -317,7 +306,7 @@ export function MicrosoftFileSelector({
     setIsLoadingTasks(true)
     try {
       const queryParams = new URLSearchParams({
-        credentialId: selectedCredentialId,
+        credentialId: credentialId,
         planId: planId,
       })
 
@@ -369,18 +358,18 @@ export function MicrosoftFileSelector({
     } finally {
       setIsLoadingTasks(false)
     }
-  }, [selectedCredentialId, planId, serviceId, isForeignCredential])
+  }, [credentialId, planId, serviceId, isForeignCredential])
 
   // Fetch a single planner task by ID for collaborator preview
   const fetchPlannerTaskById = useCallback(
     async (taskId: string) => {
-      if (!selectedCredentialId || !taskId || serviceId !== 'microsoft-planner') return null
+      if (!credentialId || !taskId || serviceId !== 'microsoft-planner') return null
       setIsLoadingTasks(true)
       try {
         const tokenRes = await fetch('/api/auth/oauth/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credentialId: selectedCredentialId, workflowId }),
+          body: JSON.stringify({ credentialId: credentialId, workflowId }),
         })
         if (!tokenRes.ok) return null
         const { accessToken } = await tokenRes.json()
@@ -411,7 +400,7 @@ export function MicrosoftFileSelector({
         setIsLoadingTasks(false)
       }
     },
-    [selectedCredentialId, workflowId, onFileInfoChange, serviceId]
+    [credentialId, workflowId, onFileInfoChange, serviceId]
   )
 
   // Fetch credentials on initial mount
@@ -424,33 +413,28 @@ export function MicrosoftFileSelector({
 
   // Fetch available files when credential changes
   useEffect(() => {
-    if (selectedCredentialId) {
+    if (credentialId) {
       fetchAvailableFiles()
     }
-  }, [selectedCredentialId, fetchAvailableFiles])
+  }, [credentialId, fetchAvailableFiles])
 
   // Refetch files when search query changes
   useEffect(() => {
-    if (selectedCredentialId && searchQuery !== undefined) {
+    if (credentialId && searchQuery !== undefined) {
       const timeoutId = setTimeout(() => {
         fetchAvailableFiles()
       }, 300) // Debounce search
 
       return () => clearTimeout(timeoutId)
     }
-  }, [searchQuery, selectedCredentialId, fetchAvailableFiles])
+  }, [searchQuery, credentialId, fetchAvailableFiles])
 
   // Fetch planner tasks when credentials and planId change
   useEffect(() => {
-    if (
-      serviceId === 'microsoft-planner' &&
-      selectedCredentialId &&
-      planId &&
-      !isForeignCredential
-    ) {
+    if (serviceId === 'microsoft-planner' && credentialId && planId && !isForeignCredential) {
       fetchPlannerTasks()
     }
-  }, [selectedCredentialId, planId, serviceId, isForeignCredential, fetchPlannerTasks])
+  }, [credentialId, planId, serviceId, isForeignCredential, fetchPlannerTasks])
 
   // Handle task selection for planner
   const handleTaskSelect = (task: PlannerTask) => {
@@ -489,9 +473,9 @@ export function MicrosoftFileSelector({
   // Clear selected file when credentials are removed or changed
   useEffect(() => {
     const prevCredentialId = prevCredentialIdRef.current
-    prevCredentialIdRef.current = selectedCredentialId
+    prevCredentialIdRef.current = credentialId || ''
 
-    if (!selectedCredentialId) {
+    if (!credentialId) {
       // No credentials - clear everything
       if (selectedFile) {
         setSelectedFile(null)
@@ -500,7 +484,7 @@ export function MicrosoftFileSelector({
       }
       // Reset memo when credential is cleared
       lastMetaAttemptRef.current = ''
-    } else if (prevCredentialId && prevCredentialId !== selectedCredentialId) {
+    } else if (prevCredentialId && prevCredentialId !== credentialId) {
       // Credentials changed (not initial load) - clear file info to force refetch
       if (selectedFile) {
         setSelectedFile(null)
@@ -508,20 +492,20 @@ export function MicrosoftFileSelector({
       // Reset memo when switching credentials
       lastMetaAttemptRef.current = ''
     }
-  }, [selectedCredentialId, selectedFile, onChange])
+  }, [credentialId, selectedFile, onChange])
 
   // Fetch the selected file metadata once credentials are loaded or changed
   useEffect(() => {
     // Fetch metadata when the external value doesn't match our current selectedFile
     if (
       value &&
-      selectedCredentialId &&
+      credentialId &&
       credentialsLoaded &&
       (!selectedFile || selectedFile.id !== value) &&
       !isLoadingSelectedFile
     ) {
       // Avoid tight retry loops by memoizing the last attempt tuple
-      const attemptKey = `${selectedCredentialId}::${value}`
+      const attemptKey = `${credentialId}::${value}`
       if (lastMetaAttemptRef.current === attemptKey) {
         return
       }
@@ -535,7 +519,7 @@ export function MicrosoftFileSelector({
     }
   }, [
     value,
-    selectedCredentialId,
+    credentialId,
     credentialsLoaded,
     selectedFile,
     isLoadingSelectedFile,
@@ -548,21 +532,14 @@ export function MicrosoftFileSelector({
   useEffect(() => {
     if (
       value &&
-      selectedCredentialId &&
+      credentialId &&
       credentialsLoaded &&
       !selectedTask &&
       serviceId === 'microsoft-planner'
     ) {
       void fetchPlannerTaskById(value)
     }
-  }, [
-    value,
-    selectedCredentialId,
-    credentialsLoaded,
-    selectedTask,
-    serviceId,
-    fetchPlannerTaskById,
-  ])
+  }, [value, credentialId, credentialsLoaded, selectedTask, serviceId, fetchPlannerTaskById])
 
   // Handle selecting a file from the available files
   const handleFileSelect = (file: MicrosoftFileInfo) => {
@@ -775,7 +752,7 @@ export function MicrosoftFileSelector({
                     {getFileIcon(selectedFile, 'sm')}
                     <span className='truncate font-normal'>{selectedFile.name}</span>
                   </>
-                ) : selectedFileId && isLoadingSelectedFile && selectedCredentialId ? (
+                ) : selectedFileId && isLoadingSelectedFile && credentialId ? (
                   <>
                     <RefreshCw className='h-4 w-4 animate-spin' />
                     <span className='truncate text-muted-foreground'>Loading document...</span>
@@ -793,13 +770,12 @@ export function MicrosoftFileSelector({
           {!isForeignCredential && (
             <PopoverContent className='w-[300px] p-0' align='start'>
               {/* Current account indicator */}
-              {selectedCredentialId && credentials.length > 0 && (
+              {credentialId && credentials.length > 0 && (
                 <div className='flex items-center justify-between border-b px-3 py-2'>
                   <div className='flex items-center gap-2'>
                     {getProviderIcon(provider)}
                     <span className='text-muted-foreground text-xs'>
-                      {credentials.find((cred) => cred.id === selectedCredentialId)?.name ||
-                        'Unknown'}
+                      {credentials.find((cred) => cred.id === credentialId)?.name || 'Unknown'}
                     </span>
                   </div>
                   {credentials.length > 1 && (
@@ -858,22 +834,20 @@ export function MicrosoftFileSelector({
                         <CommandItem
                           key={cred.id}
                           value={`account-${cred.id}`}
-                          onSelect={() => setSelectedCredentialId(cred.id)}
+                          onSelect={() => onCredentialChange?.(cred.id)}
                         >
                           <div className='flex items-center gap-2'>
                             {getProviderIcon(cred.provider)}
                             <span className='font-normal'>{cred.name}</span>
                           </div>
-                          {cred.id === selectedCredentialId && (
-                            <Check className='ml-auto h-4 w-4' />
-                          )}
+                          {cred.id === credentialId && <Check className='ml-auto h-4 w-4' />}
                         </CommandItem>
                       ))}
                     </CommandGroup>
                   )}
 
                   {/* Available files/tasks - only show if we have credentials and items */}
-                  {credentials.length > 0 && selectedCredentialId && filteredTasks.length > 0 && (
+                  {credentials.length > 0 && credentialId && filteredTasks.length > 0 && (
                     <CommandGroup>
                       <div className='px-2 py-1.5 font-medium text-muted-foreground text-xs'>
                         {getFileTypeTitleCase()}

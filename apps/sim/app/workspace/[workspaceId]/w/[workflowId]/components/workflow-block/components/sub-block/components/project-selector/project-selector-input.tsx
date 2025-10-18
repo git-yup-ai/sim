@@ -159,6 +159,9 @@ export function ProjectSelectorInput({
               showPreview={true}
               onProjectInfoChange={setProjectInfo}
               credentialId={(jiraCredential as string) || ''}
+              onCredentialChange={(newCredentialId) => {
+                collaborativeSetSubblockValue(blockId, 'credential', newCredentialId)
+              }}
               isForeignCredential={isForeignCredential}
               workflowId={activeWorkflowId || ''}
             />

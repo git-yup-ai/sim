@@ -47,6 +47,7 @@ interface JiraIssueSelectorProps {
   onIssueInfoChange?: (issueInfo: JiraIssueInfo | null) => void
   projectId?: string
   credentialId?: string
+  onCredentialChange?: (credentialId: string) => void
   isForeignCredential?: boolean
   workflowId?: string
 }
@@ -64,29 +65,19 @@ export function JiraIssueSelector({
   onIssueInfoChange,
   projectId,
   credentialId,
+  onCredentialChange,
   isForeignCredential = false,
   workflowId,
 }: JiraIssueSelectorProps) {
   const [open, setOpen] = useState(false)
   const [credentials, setCredentials] = useState<Credential[]>([])
   const [issues, setIssues] = useState<JiraIssueInfo[]>([])
-  const [selectedCredentialId, setSelectedCredentialId] = useState<string>(credentialId || '')
   const [selectedIssueId, setSelectedIssueId] = useState(value)
   const [selectedIssue, setSelectedIssue] = useState<JiraIssueInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showOAuthModal, setShowOAuthModal] = useState(false)
-  const initialFetchRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [cloudId, setCloudId] = useState<string | null>(null)
-
-  // Keep local credential state in sync with persisted credentialId prop
-  useEffect(() => {
-    if (credentialId && credentialId !== selectedCredentialId) {
-      setSelectedCredentialId(credentialId)
-    } else if (!credentialId && selectedCredentialId) {
-      setSelectedCredentialId('')
-    }
-  }, [credentialId, selectedCredentialId])
 
   // Handle search with debounce
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -145,7 +136,7 @@ export function JiraIssueSelector({
     } finally {
       setIsLoading(false)
     }
-  }, [provider, getProviderId, selectedCredentialId])
+  }, [provider])
 
   // Fetch issue info when we have a selected issue ID
   const fetchIssueInfo = useCallback(
@@ -170,7 +161,7 @@ export function JiraIssueSelector({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            credentialId: selectedCredentialId,
+            credentialId,
             workflowId,
           }),
         })
@@ -232,13 +223,13 @@ export function JiraIssueSelector({
         setIsLoading(false)
       }
     },
-    [selectedCredentialId, domain, onIssueInfoChange, cloudId]
+    [credentialId, domain, onIssueInfoChange, cloudId, workflowId]
   )
 
   // Fetch issues from Jira
   const fetchIssues = useCallback(
     async (searchQuery?: string) => {
-      if (!selectedCredentialId || !domain) return
+      if (!credentialId || !domain) return
       // If no search query is provided, require a projectId before fetching
       if (!searchQuery && !projectId) {
         setIssues([])
@@ -267,7 +258,7 @@ export function JiraIssueSelector({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            credentialId: selectedCredentialId,
+            credentialId,
             workflowId,
           }),
         })
@@ -363,13 +354,14 @@ export function JiraIssueSelector({
       }
     },
     [
-      selectedCredentialId,
+      credentialId,
       domain,
       selectedIssueId,
       onIssueInfoChange,
       fetchIssueInfo,
       cloudId,
       projectId,
+      workflowId,
     ]
   )
 
@@ -389,7 +381,7 @@ export function JiraIssueSelector({
     setOpen(isOpen)
 
     // Only fetch recent/default issues when opening the dropdown
-    if (isOpen && selectedCredentialId && domain && domain.includes('.')) {
+    if (isOpen && credentialId && domain && domain.includes('.')) {
       // Only fetch on open when a project is selected; otherwise wait for user search
       if (projectId) {
         fetchIssues('')
@@ -401,14 +393,14 @@ export function JiraIssueSelector({
   useEffect(() => {
     if (
       value &&
-      selectedCredentialId &&
+      credentialId &&
       domain &&
       domain.includes('.') &&
       (!selectedIssue || selectedIssue.id !== value)
     ) {
       fetchIssueInfo(value)
     }
-  }, [value, selectedCredentialId, selectedIssue, domain, fetchIssueInfo])
+  }, [value, credentialId, selectedIssue, domain, fetchIssueInfo])
 
   // Keep internal selectedIssueId in sync with the value prop
   useEffect(() => {
@@ -460,7 +452,7 @@ export function JiraIssueSelector({
               role='combobox'
               aria-expanded={open}
               className='h-10 w-full min-w-0 justify-between'
-              disabled={disabled || !domain || !selectedCredentialId || isForeignCredential}
+              disabled={disabled || !domain || !credentialId || isForeignCredential}
             >
               <div className='flex min-w-0 items-center gap-2 overflow-hidden'>
                 {selectedIssue ? (
@@ -481,13 +473,12 @@ export function JiraIssueSelector({
           {!isForeignCredential && (
             <PopoverContent className='w-[300px] p-0' align='start'>
               {/* Current account indicator */}
-              {selectedCredentialId && credentials.length > 0 && (
+              {credentialId && credentials.length > 0 && (
                 <div className='flex items-center justify-between border-b px-3 py-2'>
                   <div className='flex items-center gap-2'>
                     <JiraIcon className='h-4 w-4' />
                     <span className='text-muted-foreground text-xs'>
-                      {credentials.find((cred) => cred.id === selectedCredentialId)?.name ||
-                        'Unknown'}
+                      {credentials.find((cred) => cred.id === credentialId)?.name || 'Unknown'}
                     </span>
                   </div>
                   {credentials.length > 1 && (
@@ -543,15 +534,13 @@ export function JiraIssueSelector({
                         <CommandItem
                           key={cred.id}
                           value={`account-${cred.id}`}
-                          onSelect={() => setSelectedCredentialId(cred.id)}
+                          onSelect={() => onCredentialChange?.(cred.id)}
                         >
                           <div className='flex items-center gap-2'>
                             <JiraIcon className='h-4 w-4' />
                             <span className='font-normal'>{cred.name}</span>
                           </div>
-                          {cred.id === selectedCredentialId && (
-                            <Check className='ml-auto h-4 w-4' />
-                          )}
+                          {cred.id === credentialId && <Check className='ml-auto h-4 w-4' />}
                         </CommandItem>
                       ))}
                     </CommandGroup>

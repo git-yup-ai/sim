@@ -39,6 +39,7 @@ interface FolderSelectorProps {
   isPreview?: boolean
   previewValue?: any | null
   credentialId?: string
+  onCredentialChange?: (credentialId: string) => void
   workflowId?: string
   isForeignCredential?: boolean
 }
@@ -55,15 +56,13 @@ export function FolderSelector({
   isPreview = false,
   previewValue,
   credentialId,
+  onCredentialChange,
   workflowId,
   isForeignCredential = false,
 }: FolderSelectorProps) {
   const [open, setOpen] = useState(false)
   const [credentials, setCredentials] = useState<Credential[]>([])
   const [folders, setFolders] = useState<FolderInfo[]>([])
-  const [selectedCredentialId, setSelectedCredentialId] = useState<Credential['id'] | ''>(
-    credentialId || ''
-  )
   const [selectedFolderId, setSelectedFolderId] = useState('')
   const [selectedFolder, setSelectedFolder] = useState<FolderInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -79,13 +78,6 @@ export function FolderSelector({
       setSelectedFolderId(value)
     }
   }, [value, isPreview, previewValue])
-
-  // Keep internal credential in sync with prop
-  useEffect(() => {
-    if (credentialId && credentialId !== selectedCredentialId) {
-      setSelectedCredentialId(credentialId)
-    }
-  }, [credentialId, selectedCredentialId])
 
   // Determine the appropriate service ID based on provider and scopes
   const getServiceId = (): string => {
@@ -114,17 +106,17 @@ export function FolderSelector({
         if (data.credentials.length > 0) {
           // If we already have a selected credential ID, check if it's valid
           if (
-            selectedCredentialId &&
-            data.credentials.some((cred: Credential) => cred.id === selectedCredentialId)
+            credentialId &&
+            data.credentials.some((cred: Credential) => cred.id === credentialId)
           ) {
             // Keep the current selection
           } else {
             // Otherwise, select the default or first credential
             const defaultCred = data.credentials.find((cred: Credential) => cred.isDefault)
             if (defaultCred) {
-              setSelectedCredentialId(defaultCred.id)
+              onCredentialChange?.(defaultCred.id)
             } else if (data.credentials.length === 1) {
-              setSelectedCredentialId(data.credentials[0].id)
+              onCredentialChange?.(data.credentials[0].id)
             }
           }
         }
@@ -134,12 +126,12 @@ export function FolderSelector({
     } finally {
       setIsLoading(false)
     }
-  }, [provider, getProviderId, selectedCredentialId])
+  }, [provider, getProviderId, credentialId, onCredentialChange])
 
   // Fetch a single folder by ID when we have a selectedFolderId but no metadata
   const fetchFolderById = useCallback(
     async (folderId: string) => {
-      if (!selectedCredentialId || !folderId) return null
+      if (!credentialId || !folderId) return null
 
       setIsLoadingSelectedFolder(true)
       try {
@@ -148,7 +140,7 @@ export function FolderSelector({
           const tokenRes = await fetch('/api/auth/oauth/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ credentialId: selectedCredentialId, workflowId }),
+            body: JSON.stringify({ credentialId: credentialId, workflowId }),
           })
           if (!tokenRes.ok) return null
           const { accessToken } = await tokenRes.json()
@@ -174,7 +166,7 @@ export function FolderSelector({
         }
         // Gmail label resolution
         const queryParams = new URLSearchParams({
-          credentialId: selectedCredentialId,
+          credentialId: credentialId,
           labelId: folderId,
         })
         const response = await fetch(`/api/tools/gmail/label?${queryParams.toString()}`)
@@ -198,19 +190,19 @@ export function FolderSelector({
         setIsLoadingSelectedFolder(false)
       }
     },
-    [selectedCredentialId, onFolderInfoChange, provider, workflowId]
+    [credentialId, onFolderInfoChange, provider, workflowId]
   )
 
   // Fetch folders from Gmail or Outlook
   const fetchFolders = useCallback(
     async (searchQuery?: string) => {
-      if (!selectedCredentialId) return
+      if (!credentialId) return
 
       setIsLoading(true)
       try {
         // Construct query parameters
         const queryParams = new URLSearchParams({
-          credentialId: selectedCredentialId,
+          credentialId: credentialId,
         })
 
         if (searchQuery) {
@@ -270,7 +262,7 @@ export function FolderSelector({
       }
     },
     [
-      selectedCredentialId,
+      credentialId,
       selectedFolderId,
       onFolderInfoChange,
       fetchFolderById,
@@ -291,10 +283,10 @@ export function FolderSelector({
   // Fetch folders when credential is selected
   useEffect(() => {
     if (disabled) return
-    if (selectedCredentialId) {
+    if (credentialId) {
       fetchFolders()
     }
-  }, [selectedCredentialId, fetchFolders, disabled])
+  }, [credentialId, fetchFolders, disabled])
 
   // Keep internal selectedFolderId in sync with the value prop
   useEffect(() => {
@@ -309,22 +301,10 @@ export function FolderSelector({
   useEffect(() => {
     if (disabled) return
     const currentValue = isPreview ? (previewValue as string) : (value as string)
-    if (
-      currentValue &&
-      selectedCredentialId &&
-      (!selectedFolder || selectedFolder.id !== currentValue)
-    ) {
+    if (currentValue && credentialId && (!selectedFolder || selectedFolder.id !== currentValue)) {
       fetchFolderById(currentValue)
     }
-  }, [
-    value,
-    selectedCredentialId,
-    selectedFolder,
-    fetchFolderById,
-    isPreview,
-    previewValue,
-    disabled,
-  ])
+  }, [value, credentialId, selectedFolder, fetchFolderById, isPreview, previewValue, disabled])
 
   // Handle folder selection
   const handleSelectFolder = (folder: FolderInfo) => {
@@ -402,12 +382,11 @@ export function FolderSelector({
           {!isForeignCredential && (
             <PopoverContent className='w-[300px] p-0' align='start'>
               {/* Current account indicator */}
-              {selectedCredentialId && credentials.length > 0 && (
+              {credentialId && credentials.length > 0 && (
                 <div className='flex items-center justify-between border-b px-3 py-2'>
                   <div className='flex items-center gap-2'>
                     <span className='text-muted-foreground text-xs'>
-                      {credentials.find((cred) => cred.id === selectedCredentialId)?.name ||
-                        'Unknown'}
+                      {credentials.find((cred) => cred.id === credentialId)?.name || 'Unknown'}
                     </span>
                   </div>
                   {credentials.length > 1 && (
@@ -462,14 +441,14 @@ export function FolderSelector({
                         <CommandItem
                           key={cred.id}
                           value={`account-${cred.id}`}
-                          onSelect={() => setSelectedCredentialId(cred.id)}
+                          onSelect={() => {
+                            if (onCredentialChange) onCredentialChange(cred.id)
+                          }}
                         >
                           <div className='flex items-center gap-2'>
                             <span className='font-normal'>{cred.name}</span>
                           </div>
-                          {cred.id === selectedCredentialId && (
-                            <Check className='ml-auto h-4 w-4' />
-                          )}
+                          {cred.id === credentialId && <Check className='ml-auto h-4 w-4' />}
                         </CommandItem>
                       ))}
                     </CommandGroup>

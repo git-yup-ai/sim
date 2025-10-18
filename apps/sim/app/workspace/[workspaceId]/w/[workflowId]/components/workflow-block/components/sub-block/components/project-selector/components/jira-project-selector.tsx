@@ -49,6 +49,7 @@ interface JiraProjectSelectorProps {
   showPreview?: boolean
   onProjectInfoChange?: (projectInfo: JiraProjectInfo | null) => void
   credentialId?: string
+  onCredentialChange?: (credentialId: string) => void
   isForeignCredential?: boolean
   workflowId?: string
 }
@@ -65,18 +66,17 @@ export function JiraProjectSelector({
   showPreview = true,
   onProjectInfoChange,
   credentialId,
+  onCredentialChange,
   isForeignCredential = false,
   workflowId,
 }: JiraProjectSelectorProps) {
   const [open, setOpen] = useState(false)
   const [credentials, setCredentials] = useState<Credential[]>([])
   const [projects, setProjects] = useState<JiraProjectInfo[]>([])
-  const [selectedCredentialId, setSelectedCredentialId] = useState<string>(credentialId || '')
   const [selectedProjectId, setSelectedProjectId] = useState(value)
   const [selectedProject, setSelectedProject] = useState<JiraProjectInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showOAuthModal, setShowOAuthModal] = useState(false)
-  const initialFetchRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [cloudId, setCloudId] = useState<string | null>(null)
 
@@ -137,12 +137,12 @@ export function JiraProjectSelector({
     } finally {
       setIsLoading(false)
     }
-  }, [provider, getProviderId, selectedCredentialId])
+  }, [provider])
 
   // Fetch detailed project information
   const fetchProjectInfo = useCallback(
     async (projectId: string) => {
-      if (!selectedCredentialId || !domain || !projectId) return
+      if (!credentialId || !domain || !projectId) return
 
       setIsLoading(true)
       setError(null)
@@ -155,7 +155,7 @@ export function JiraProjectSelector({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            credentialId: selectedCredentialId,
+            credentialId,
             workflowId,
           }),
         })
@@ -211,13 +211,13 @@ export function JiraProjectSelector({
         setIsLoading(false)
       }
     },
-    [selectedCredentialId, domain, onProjectInfoChange, cloudId]
+    [credentialId, domain, onProjectInfoChange, cloudId, workflowId]
   )
 
   // Fetch projects from Jira
   const fetchProjects = useCallback(
     async (searchQuery?: string) => {
-      if (!selectedCredentialId || !domain) return
+      if (!credentialId || !domain) return
 
       // Validate domain format
       const trimmedDomain = domain.trim().toLowerCase()
@@ -241,7 +241,7 @@ export function JiraProjectSelector({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            credentialId: selectedCredentialId,
+            credentialId,
             workflowId,
           }),
         })
@@ -314,12 +314,13 @@ export function JiraProjectSelector({
       }
     },
     [
-      selectedCredentialId,
+      credentialId,
       domain,
       selectedProjectId,
       onProjectInfoChange,
       fetchProjectInfo,
       cloudId,
+      workflowId,
     ]
   )
 
@@ -330,21 +331,14 @@ export function JiraProjectSelector({
     }
   }, [open, fetchCredentials])
 
-  // Keep local credential state in sync with persisted credential
-  useEffect(() => {
-    if (credentialId && credentialId !== selectedCredentialId) {
-      setSelectedCredentialId(credentialId)
-    }
-  }, [credentialId, selectedCredentialId])
-
   // Fetch the selected project metadata once credentials are ready or changed
   useEffect(() => {
-    if (value && selectedCredentialId && domain && domain.includes('.')) {
+    if (value && credentialId && domain && domain.includes('.')) {
       if (!selectedProject || selectedProject.id !== value) {
         fetchProjectInfo(value)
       }
     }
-  }, [value, selectedCredentialId, domain, fetchProjectInfo, selectedProject])
+  }, [value, credentialId, domain, fetchProjectInfo, selectedProject])
 
   // Keep internal selectedProjectId in sync with the value prop
   useEffect(() => {
@@ -365,7 +359,7 @@ export function JiraProjectSelector({
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen)
     // Only fetch projects when a credential is present; otherwise, do nothing
-    if (isOpen && selectedCredentialId && domain && domain.includes('.')) {
+    if (isOpen && credentialId && domain && domain.includes('.')) {
       fetchProjects('')
     }
   }
@@ -407,7 +401,7 @@ export function JiraProjectSelector({
               role='combobox'
               aria-expanded={open}
               className='w-full justify-between'
-              disabled={disabled || !domain || !selectedCredentialId || isForeignCredential}
+              disabled={disabled || !domain || !credentialId || isForeignCredential}
             >
               {canShowPreview ? (
                 <div className='flex items-center gap-2 overflow-hidden'>
@@ -430,13 +424,12 @@ export function JiraProjectSelector({
           </PopoverTrigger>
           {!isForeignCredential && (
             <PopoverContent className='w-[300px] p-0' align='start'>
-              {selectedCredentialId && credentials.length > 0 && (
+              {credentialId && credentials.length > 0 && (
                 <div className='flex items-center justify-between border-b px-3 py-2'>
                   <div className='flex items-center gap-2'>
                     <JiraIcon className='h-4 w-4' />
                     <span className='text-muted-foreground text-xs'>
-                      {credentials.find((cred) => cred.id === selectedCredentialId)?.name ||
-                        'Unknown'}
+                      {credentials.find((cred) => cred.id === credentialId)?.name || 'Unknown'}
                     </span>
                   </div>
                   {credentials.length > 1 && (
@@ -492,15 +485,13 @@ export function JiraProjectSelector({
                         <CommandItem
                           key={cred.id}
                           value={`account-${cred.id}`}
-                          onSelect={() => setSelectedCredentialId(cred.id)}
+                          onSelect={() => onCredentialChange?.(cred.id)}
                         >
                           <div className='flex items-center gap-2'>
                             <JiraIcon className='h-4 w-4' />
                             <span className='font-normal'>{cred.name}</span>
                           </div>
-                          {cred.id === selectedCredentialId && (
-                            <Check className='ml-auto h-4 w-4' />
-                          )}
+                          {cred.id === credentialId && <Check className='ml-auto h-4 w-4' />}
                         </CommandItem>
                       ))}
                     </CommandGroup>

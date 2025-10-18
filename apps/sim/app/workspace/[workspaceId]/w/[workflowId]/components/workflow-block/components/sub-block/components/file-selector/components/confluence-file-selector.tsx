@@ -46,6 +46,7 @@ interface ConfluenceFileSelectorProps {
   showPreview?: boolean
   onFileInfoChange?: (fileInfo: ConfluenceFileInfo | null) => void
   credentialId?: string
+  onCredentialChange?: (credentialId: string) => void
   workflowId?: string
   isForeignCredential?: boolean
 }
@@ -62,25 +63,19 @@ export function ConfluenceFileSelector({
   showPreview = true,
   onFileInfoChange,
   credentialId,
+  onCredentialChange,
   workflowId,
   isForeignCredential = false,
 }: ConfluenceFileSelectorProps) {
   const [open, setOpen] = useState(false)
   const [credentials, setCredentials] = useState<Credential[]>([])
   const [files, setFiles] = useState<ConfluenceFileInfo[]>([])
-  const [selectedCredentialId, setSelectedCredentialId] = useState<string>(credentialId || '')
   const [selectedFileId, setSelectedFileId] = useState(value)
   const [selectedFile, setSelectedFile] = useState<ConfluenceFileInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showOAuthModal, setShowOAuthModal] = useState(false)
   const initialFetchRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
-  // Keep internal credential in sync with prop (handles late arrival and BFCache restores)
-  useEffect(() => {
-    if (credentialId && credentialId !== selectedCredentialId) {
-      setSelectedCredentialId(credentialId)
-    }
-  }, [credentialId, selectedCredentialId])
 
   // Handle search with debounce
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -138,12 +133,12 @@ export function ConfluenceFileSelector({
     } finally {
       setIsLoading(false)
     }
-  }, [provider, getProviderId, selectedCredentialId])
+  }, [provider])
 
   // Fetch page info when we have a selected file ID
   const fetchPageInfo = useCallback(
     async (pageId: string) => {
-      if (!selectedCredentialId || !domain) return
+      if (!credentialId || !domain) return
 
       // Validate domain format
       const trimmedDomain = domain.trim().toLowerCase()
@@ -165,7 +160,7 @@ export function ConfluenceFileSelector({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            credentialId: selectedCredentialId,
+            credentialId: credentialId,
             workflowId,
           }),
         })
@@ -220,13 +215,13 @@ export function ConfluenceFileSelector({
         setIsLoading(false)
       }
     },
-    [selectedCredentialId, domain, onFileInfoChange, workflowId]
+    [credentialId, domain, onFileInfoChange, workflowId]
   )
 
   // Fetch pages from Confluence
   const fetchFiles = useCallback(
     async (searchQuery?: string) => {
-      if (!selectedCredentialId || !domain) return
+      if (!credentialId || !domain) return
       if (isForeignCredential) return
 
       // Validate domain format
@@ -251,7 +246,7 @@ export function ConfluenceFileSelector({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            credentialId: selectedCredentialId,
+            credentialId: credentialId,
             workflowId,
           }),
         })
@@ -326,7 +321,7 @@ export function ConfluenceFileSelector({
       }
     },
     [
-      selectedCredentialId,
+      credentialId,
       domain,
       selectedFileId,
       onFileInfoChange,
@@ -349,25 +344,17 @@ export function ConfluenceFileSelector({
     setOpen(isOpen)
 
     // Only fetch files when opening the dropdown and if we have valid credentials and domain
-    if (isOpen && !isForeignCredential && selectedCredentialId && domain && domain.includes('.')) {
+    if (isOpen && !isForeignCredential && credentialId && domain && domain.includes('.')) {
       fetchFiles()
     }
   }
 
   // Fetch the selected page metadata once credentials and domain are ready or changed
   useEffect(() => {
-    if (value && selectedCredentialId && !selectedFile && domain && domain.includes('.')) {
+    if (value && credentialId && !selectedFile && domain && domain.includes('.')) {
       fetchPageInfo(value)
     }
-  }, [
-    value,
-    selectedCredentialId,
-    selectedFile,
-    domain,
-    fetchPageInfo,
-    workflowId,
-    isForeignCredential,
-  ])
+  }, [value, credentialId, selectedFile, domain, fetchPageInfo, workflowId, isForeignCredential])
 
   // Keep internal selectedFileId in sync with the value prop
   useEffect(() => {
@@ -439,13 +426,12 @@ export function ConfluenceFileSelector({
           {!isForeignCredential && (
             <PopoverContent className='w-[300px] p-0' align='start'>
               {/* Current account indicator */}
-              {selectedCredentialId && credentials.length > 0 && (
+              {credentialId && credentials.length > 0 && (
                 <div className='flex items-center justify-between border-b px-3 py-2'>
                   <div className='flex items-center gap-2'>
                     <ConfluenceIcon className='h-4 w-4' />
                     <span className='text-muted-foreground text-xs'>
-                      {credentials.find((cred) => cred.id === selectedCredentialId)?.name ||
-                        'Unknown'}
+                      {credentials.find((cred) => cred.id === credentialId)?.name || 'Unknown'}
                     </span>
                   </div>
                   {credentials.length > 1 && (
@@ -501,15 +487,13 @@ export function ConfluenceFileSelector({
                         <CommandItem
                           key={cred.id}
                           value={`account-${cred.id}`}
-                          onSelect={() => setSelectedCredentialId(cred.id)}
+                          onSelect={() => onCredentialChange?.(cred.id)}
                         >
                           <div className='flex items-center gap-2'>
                             <ConfluenceIcon className='h-4 w-4' />
                             <span className='font-normal'>{cred.name}</span>
                           </div>
-                          {cred.id === selectedCredentialId && (
-                            <Check className='ml-auto h-4 w-4' />
-                          )}
+                          {cred.id === credentialId && <Check className='ml-auto h-4 w-4' />}
                         </CommandItem>
                       ))}
                     </CommandGroup>

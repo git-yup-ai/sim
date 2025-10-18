@@ -45,6 +45,7 @@ interface TeamsMessageSelectorProps {
   showPreview?: boolean
   onMessageInfoChange?: (messageInfo: TeamsMessageInfo | null) => void
   credential: string
+  onCredentialChange?: (credentialId: string) => void
   selectionType?: 'team' | 'channel' | 'chat'
   initialTeamId?: string
   workflowId: string
@@ -62,6 +63,7 @@ export function TeamsMessageSelector({
   showPreview = true,
   onMessageInfoChange,
   credential,
+  onCredentialChange,
   selectionType = 'team',
   initialTeamId,
   workflowId,
@@ -72,7 +74,6 @@ export function TeamsMessageSelector({
   const [teams, setTeams] = useState<TeamsMessageInfo[]>([])
   const [channels, setChannels] = useState<TeamsMessageInfo[]>([])
   const [chats, setChats] = useState<TeamsMessageInfo[]>([])
-  const [selectedCredentialId, setSelectedCredentialId] = useState<string>(credential || '')
   const [selectedTeamId, setSelectedTeamId] = useState<string>('')
   const [selectedChannelId, setSelectedChannelId] = useState<string>('')
   const [selectedChatId, setSelectedChatId] = useState<string>('')
@@ -111,11 +112,11 @@ export function TeamsMessageSelector({
     } finally {
       setIsLoading(false)
     }
-  }, [provider, getProviderId, selectedCredentialId])
+  }, [provider])
 
   // Fetch teams
   const fetchTeams = useCallback(async () => {
-    if (!selectedCredentialId) return
+    if (!credential) return
 
     setIsLoading(true)
     setError(null)
@@ -127,7 +128,7 @@ export function TeamsMessageSelector({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          credential: selectedCredentialId,
+          credential: credential,
           workflowId,
         }),
       })
@@ -171,12 +172,12 @@ export function TeamsMessageSelector({
     } finally {
       setIsLoading(false)
     }
-  }, [selectedCredentialId, selectedTeamId, onMessageInfoChange, workflowId])
+  }, [credential, selectedTeamId, onMessageInfoChange, workflowId])
 
   // Fetch channels for a selected team
   const fetchChannels = useCallback(
     async (teamId: string) => {
-      if (!selectedCredentialId || !teamId) return
+      if (!credential || !teamId) return
 
       setIsLoading(true)
       setError(null)
@@ -188,7 +189,7 @@ export function TeamsMessageSelector({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            credential: selectedCredentialId,
+            credential: credential,
             teamId,
             workflowId,
           }),
@@ -237,12 +238,12 @@ export function TeamsMessageSelector({
         setIsLoading(false)
       }
     },
-    [selectedCredentialId, selectedChannelId, onMessageInfoChange, workflowId]
+    [credential, selectedChannelId, onMessageInfoChange, workflowId]
   )
 
   // Fetch chats
   const fetchChats = useCallback(async () => {
-    if (!selectedCredentialId) return
+    if (!credential) return
 
     setIsLoading(true)
     setError(null)
@@ -254,7 +255,7 @@ export function TeamsMessageSelector({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          credential: selectedCredentialId,
+          credential: credential,
           workflowId: workflowId, // Pass the workflowId for server-side authentication
         }),
       })
@@ -298,7 +299,7 @@ export function TeamsMessageSelector({
     } finally {
       setIsLoading(false)
     }
-  }, [selectedCredentialId, selectedChatId, onMessageInfoChange, workflowId])
+  }, [credential, selectedChatId, onMessageInfoChange, workflowId])
 
   // Update selection stage based on selected values and selectionType
   useEffect(() => {
@@ -332,7 +333,7 @@ export function TeamsMessageSelector({
     }
     setOpen(isOpen)
     // Only fetch data when opening the dropdown
-    if (isOpen && selectedCredentialId) {
+    if (isOpen && credential) {
       if (selectionStage === 'team') {
         fetchTeams()
       } else if (selectionStage === 'channel' && selectedTeamId) {
@@ -476,14 +477,14 @@ export function TeamsMessageSelector({
   // Restore team selection on page refresh
   const restoreTeamSelection = useCallback(
     async (teamId: string) => {
-      if (!selectedCredentialId || !teamId || selectionType !== 'team') return
+      if (!credential || !teamId || selectionType !== 'team') return
 
       setIsLoading(true)
       try {
         const response = await fetch('/api/tools/microsoft-teams/teams', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: selectedCredentialId, workflowId }),
+          body: JSON.stringify({ credential: credential, workflowId }),
         })
 
         if (response.ok) {
@@ -508,20 +509,20 @@ export function TeamsMessageSelector({
         setIsLoading(false)
       }
     },
-    [selectedCredentialId, selectionType, onMessageInfoChange, workflowId]
+    [credential, selectionType, onMessageInfoChange, workflowId]
   )
 
   // Restore chat selection on page refresh
   const restoreChatSelection = useCallback(
     async (chatId: string) => {
-      if (!selectedCredentialId || !chatId || selectionType !== 'chat') return
+      if (!credential || !chatId || selectionType !== 'chat') return
 
       setIsLoading(true)
       try {
         const response = await fetch('/api/tools/microsoft-teams/chats', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: selectedCredentialId, workflowId }),
+          body: JSON.stringify({ credential: credential, workflowId }),
         })
 
         if (response.ok) {
@@ -546,13 +547,13 @@ export function TeamsMessageSelector({
         setIsLoading(false)
       }
     },
-    [selectedCredentialId, selectionType, onMessageInfoChange, workflowId]
+    [credential, selectionType, onMessageInfoChange, workflowId]
   )
 
   // Restore channel selection on page refresh
   const restoreChannelSelection = useCallback(
     async (channelId: string) => {
-      if (!selectedCredentialId || !channelId || selectionType !== 'channel') return
+      if (!credential || !channelId || selectionType !== 'channel') return
 
       setIsLoading(true)
       try {
@@ -560,7 +561,7 @@ export function TeamsMessageSelector({
         const teamsResponse = await fetch('/api/tools/microsoft-teams/teams', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: selectedCredentialId, workflowId }),
+          body: JSON.stringify({ credential: credential, workflowId }),
         })
 
         if (teamsResponse.ok) {
@@ -574,7 +575,7 @@ export function TeamsMessageSelector({
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    credential: selectedCredentialId,
+                    credential: credential,
                     teamId: team.id,
                     workflowId,
                   }),
@@ -634,7 +635,7 @@ export function TeamsMessageSelector({
         setIsLoading(false)
       }
     },
-    [selectedCredentialId, selectionType, onMessageInfoChange, workflowId]
+    [credential, selectionType, onMessageInfoChange, workflowId]
   )
 
   // Set initial team ID if provided
@@ -660,16 +661,9 @@ export function TeamsMessageSelector({
     }
   }, [fetchCredentials])
 
-  // Keep local credential state in sync with persisted credential
-  useEffect(() => {
-    if (credential && credential !== selectedCredentialId) {
-      setSelectedCredentialId(credential)
-    }
-  }, [credential, selectedCredentialId])
-
   // Restore selection whenever the canonical value changes
   useEffect(() => {
-    if (value && selectedCredentialId) {
+    if (value && credential) {
       if (selectionType === 'team') {
         restoreTeamSelection(value)
       } else if (selectionType === 'chat') {
@@ -682,7 +676,7 @@ export function TeamsMessageSelector({
     }
   }, [
     value,
-    selectedCredentialId,
+    credential,
     selectionType,
     restoreTeamSelection,
     restoreChatSelection,
@@ -724,13 +718,12 @@ export function TeamsMessageSelector({
           {!isForeignCredential && (
             <PopoverContent className='w-[300px] p-0' align='start'>
               {/* Current account indicator */}
-              {selectedCredentialId && credentials.length > 0 && (
+              {credential && credentials.length > 0 && (
                 <div className='flex items-center justify-between border-b px-3 py-2'>
                   <div className='flex items-center gap-2'>
                     <MicrosoftTeamsIcon className='h-4 w-4' />
                     <span className='text-muted-foreground text-xs'>
-                      {credentials.find((cred) => cred.id === selectedCredentialId)?.name ||
-                        'Unknown'}
+                      {credentials.find((cred) => cred.id === credential)?.name || 'Unknown'}
                     </span>
                   </div>
                   {credentials.length > 1 && (
@@ -805,7 +798,7 @@ export function TeamsMessageSelector({
                           key={cred.id}
                           value={`account-${cred.id}`}
                           onSelect={() => {
-                            setSelectedCredentialId(cred.id)
+                            if (onCredentialChange) onCredentialChange(cred.id)
                             setOpen(false)
                           }}
                         >
@@ -813,9 +806,7 @@ export function TeamsMessageSelector({
                             <MicrosoftTeamsIcon className='h-4 w-4' />
                             <span className='font-normal'>{cred.name}</span>
                           </div>
-                          {cred.id === selectedCredentialId && (
-                            <Check className='ml-auto h-4 w-4' />
-                          )}
+                          {cred.id === credential && <Check className='ml-auto h-4 w-4' />}
                         </CommandItem>
                       ))}
                     </CommandGroup>

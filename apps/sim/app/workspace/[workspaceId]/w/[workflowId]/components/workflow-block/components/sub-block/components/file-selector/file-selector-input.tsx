@@ -203,6 +203,9 @@ export function FileSelectorInput({
                 disabled={finalDisabled}
                 showPreview={true}
                 credentialId={credential}
+                onCredentialChange={(newCredentialId) => {
+                  collaborativeSetSubblockValue(blockId, 'credential', newCredentialId)
+                }}
                 projectId={(projectIdValue as string) || ''}
                 isForeignCredential={isForeignCredential}
                 workflowId={activeWorkflowId || ''}

@@ -7,6 +7,7 @@ export interface LoopScope {
   item?: any
   items?: any[]
   condition?: string
+  loopType?: string
 }
 
 export interface ParallelScope {

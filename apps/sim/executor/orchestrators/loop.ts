@@ -37,14 +37,15 @@ export class LoopOrchestrator {
       throw new Error(`Loop config not found: ${loopId}`)
     }
 
+    const loopType = loopConfig.loopType
+    logger.debug('Initializing loop scope', { loopId, loopType })
+
     const scope: LoopScope = {
       iteration: 0,
       currentIterationOutputs: new Map(),
       allIterationOutputs: [],
+      loopType,
     }
-
-    const loopType = loopConfig.loopType
-    logger.debug('Initializing loop scope', { loopId, loopType })
 
     switch (loopType) {
       case 'for':
@@ -177,6 +178,11 @@ export class LoopOrchestrator {
   }
 
   private evaluateCondition(ctx: ExecutionContext, scope: LoopScope, iteration?: number): boolean {
+    const checkIteration = iteration !== undefined ? iteration : scope.iteration
+    if (scope.loopType === 'doWhile' && checkIteration === 0) {
+      return true
+    }
+
     if (!scope.condition) {
       logger.warn('No condition defined for loop')
       return false
@@ -309,6 +315,13 @@ export class LoopOrchestrator {
         return match
       })
 
+      logger.debug('About to evaluate condition', {
+        condition,
+        evaluatedCondition,
+        replacements,
+        iteration: scope.iteration,
+      })
+
       const result = Boolean(new Function(`return (${evaluatedCondition})`)())
 
       logger.debug('Evaluated loop condition', {
@@ -321,7 +334,11 @@ export class LoopOrchestrator {
 
       return result
     } catch (error) {
-      logger.error('Failed to evaluate loop condition', { condition, error })
+      logger.error('Failed to evaluate loop condition', { 
+        condition, 
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      })
       return false
     }
   }

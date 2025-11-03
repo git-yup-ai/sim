@@ -37,15 +37,14 @@ export class LoopOrchestrator {
       throw new Error(`Loop config not found: ${loopId}`)
     }
 
-    const loopType = loopConfig.loopType
-    logger.debug('Initializing loop scope', { loopId, loopType })
-
     const scope: LoopScope = {
       iteration: 0,
       currentIterationOutputs: new Map(),
       allIterationOutputs: [],
-      loopType,
     }
+
+    const loopType = loopConfig.loopType
+    logger.debug('Initializing loop scope', { loopId, loopType })
 
     switch (loopType) {
       case 'for':
@@ -65,9 +64,19 @@ export class LoopOrchestrator {
       }
 
       case 'while':
-      case 'doWhile':
-        scope.condition = loopConfig.whileCondition || loopConfig.doWhileCondition
+        scope.condition = loopConfig.whileCondition
         logger.debug('While loop initialized', { loopId, condition: scope.condition })
+        break
+
+      case 'doWhile':
+        if (loopConfig.doWhileCondition) {
+          scope.condition = loopConfig.doWhileCondition
+        } else {
+          scope.maxIterations = loopConfig.iterations || DEFAULTS.MAX_LOOP_ITERATIONS
+          scope.condition = buildLoopIndexCondition(scope.maxIterations)
+        }
+        scope.skipFirstConditionCheck = true
+        logger.debug('DoWhile loop initialized', { loopId, condition: scope.condition })
         break
 
       default:
@@ -127,13 +136,17 @@ export class LoopOrchestrator {
 
     scope.currentIterationOutputs.clear()
 
-    if (!this.evaluateCondition(ctx, scope, scope.iteration + 1)) {
-      logger.debug('Loop condition false for next iteration - exiting', {
-        loopId,
-        currentIteration: scope.iteration,
-        nextIteration: scope.iteration + 1,
-      })
-      return this.createExitResult(ctx, loopId, scope)
+    const isFirstIteration = scope.iteration === 0
+    const shouldSkipFirstCheck = scope.skipFirstConditionCheck && isFirstIteration
+    if (!shouldSkipFirstCheck) {
+      if (!this.evaluateCondition(ctx, scope, scope.iteration + 1)) {
+        logger.debug('Loop condition false for next iteration - exiting', {
+          loopId,
+          currentIteration: scope.iteration,
+          nextIteration: scope.iteration + 1,
+        })
+        return this.createExitResult(ctx, loopId, scope)
+      }
     }
 
     scope.iteration++
@@ -178,11 +191,6 @@ export class LoopOrchestrator {
   }
 
   private evaluateCondition(ctx: ExecutionContext, scope: LoopScope, iteration?: number): boolean {
-    const checkIteration = iteration !== undefined ? iteration : scope.iteration
-    if (scope.loopType === 'doWhile' && checkIteration === 0) {
-      return true
-    }
-
     if (!scope.condition) {
       logger.warn('No condition defined for loop')
       return false
@@ -271,7 +279,7 @@ export class LoopOrchestrator {
     const scope = this.state.getLoopScope(loopId)
     if (!scope) return true
     
-    if (scope.iteration === 0) {
+    if (scope.iteration === 0 && !scope.skipFirstConditionCheck) {
       return this.evaluateCondition(context, scope, 0)
     }
     
@@ -298,7 +306,7 @@ export class LoopOrchestrator {
     }
 
     try {
-      const referencePattern = /<([^>]+)>/g
+      const referencePattern = /<([a-zA-Z][^>]*)>/g
       let evaluatedCondition = condition
       const replacements: Record<string, string> = {}
 
@@ -315,13 +323,6 @@ export class LoopOrchestrator {
         return match
       })
 
-      logger.debug('About to evaluate condition', {
-        condition,
-        evaluatedCondition,
-        replacements,
-        iteration: scope.iteration,
-      })
-
       const result = Boolean(new Function(`return (${evaluatedCondition})`)())
 
       logger.debug('Evaluated loop condition', {
@@ -334,11 +335,7 @@ export class LoopOrchestrator {
 
       return result
     } catch (error) {
-      logger.error('Failed to evaluate loop condition', { 
-        condition, 
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      })
+      logger.error('Failed to evaluate loop condition', { condition, error })
       return false
     }
   }

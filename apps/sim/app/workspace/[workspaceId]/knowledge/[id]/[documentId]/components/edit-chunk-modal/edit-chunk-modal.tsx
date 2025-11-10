@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { createLogger } from '@/lib/logs/console/logger'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import type { ChunkData, DocumentData } from '@/stores/knowledge/store'
 
 const logger = createLogger('EditChunkModal')

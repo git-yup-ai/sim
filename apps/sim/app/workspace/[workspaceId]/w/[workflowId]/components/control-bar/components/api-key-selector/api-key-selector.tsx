@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui'
 import { createLogger } from '@/lib/logs/console/logger'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 
 const logger = createLogger('ApiKeySelector')
 

@@ -238,6 +238,20 @@ export async function POST(req: NextRequest) {
           .from(customTools)
           .where(eq(customTools.workspaceId, workspaceId))
 
+        // Notify socket server of custom tools update
+        const { notifyWorkspaceResourceChange } = await import(
+          '@/lib/realtime/notify-workspace-change'
+        )
+        const toolIds = tools.map((t) => t.id).filter(Boolean)
+        await notifyWorkspaceResourceChange(
+          workspaceId,
+          'tools',
+          'update',
+          { toolIds, count: tools.length },
+          workspaceId,
+          logger
+        )
+
         return NextResponse.json({ success: true, data: resultTools })
       })
     } catch (validationError) {
@@ -338,6 +352,22 @@ export async function DELETE(request: NextRequest) {
     await db.delete(customTools).where(eq(customTools.id, toolId))
 
     logger.info(`[${requestId}] Deleted tool: ${toolId}`)
+
+    // Notify socket server of custom tool deletion (only for workspace-scoped tools)
+    if (tool.workspaceId && workspaceId) {
+      const { notifyWorkspaceResourceChange } = await import(
+        '@/lib/realtime/notify-workspace-change'
+      )
+      await notifyWorkspaceResourceChange(
+        workspaceId,
+        'tools',
+        'delete',
+        { toolId, title: tool.title },
+        toolId,
+        logger
+      )
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error(`[${requestId}] Error deleting custom tool:`, error)

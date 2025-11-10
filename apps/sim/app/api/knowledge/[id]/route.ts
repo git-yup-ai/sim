@@ -157,6 +157,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Get knowledge base data before deletion for socket notification
+    const kbWorkspaceId = accessCheck.knowledgeBase?.workspaceId
+    const kbName = accessCheck.knowledgeBase?.name
+
     await deleteKnowledgeBase(id, requestId)
 
     logger.info(`[${requestId}] Knowledge base deleted: ${id} for user ${session.user.id}`)

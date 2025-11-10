@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { Tooltip } from '@/components/emcn'
-import { WorkspacePermissionsProvider } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 import { SettingsLoader } from './settings-loader'
 
 interface ProvidersProps {
@@ -14,7 +13,7 @@ const Providers = React.memo<ProvidersProps>(({ children }) => {
     <>
       <SettingsLoader />
       <Tooltip.Provider delayDuration={600} skipDelayDuration={0}>
-        <WorkspacePermissionsProvider>{children}</WorkspacePermissionsProvider>
+        {children}
       </Tooltip.Provider>
     </>
   )

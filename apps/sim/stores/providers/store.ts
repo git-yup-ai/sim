@@ -121,13 +121,9 @@ export const useProvidersStore = create<ProvidersStore>((set, get) => ({
   getProvider: (provider) => {
     return get().providers[provider]
   },
-}))
 
-if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    const store = useProvidersStore.getState()
-    store.fetchModels('base')
-    store.fetchModels('ollama')
-    store.fetchModels('openrouter')
-  }, 1000)
-}
+  hasLoadedModels: (provider: ProviderName) => {
+    const providerState = get().providers[provider]
+    return providerState.models.length > 0
+  },
+}))

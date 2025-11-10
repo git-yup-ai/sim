@@ -3,7 +3,7 @@
 import { memo, useMemo } from 'react'
 import { useViewport } from 'reactflow'
 import { useSession } from '@/lib/auth-client'
-import { getPresenceColors } from '@/lib/collaboration/presence-colors'
+import { getPresenceColors } from '@/lib/realtime/presence-colors'
 import { useSocket } from '@/contexts/socket-context'
 
 interface CursorPoint {

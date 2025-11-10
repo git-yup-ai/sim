@@ -3,7 +3,7 @@
 import { type CSSProperties, useMemo } from 'react'
 import Image from 'next/image'
 import { Tooltip } from '@/components/emcn'
-import { getPresenceColors } from '@/lib/collaboration/presence-colors'
+import { getPresenceColors } from '@/lib/realtime/presence-colors'
 
 interface AvatarProps {
   connectionId: string | number

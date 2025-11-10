@@ -151,6 +151,32 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       }
     })
 
+    // Notify socket server of permission changes
+    try {
+      const { env } = await import('@/lib/env')
+      const socketUrl = env.SOCKET_SERVER_URL || 'http://localhost:3002'
+      for (const update of body.updates) {
+        await fetch(`${socketUrl}/api/permission-changed`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: update.userId,
+            workspaceId,
+            newRole: update.permissions,
+            isRemoved: false,
+          }),
+        }).catch((err) => {
+          logger.warn(
+            `Failed to notify socket server of permission change for user ${update.userId}:`,
+            err
+          )
+        })
+      }
+    } catch (error) {
+      logger.warn('Error notifying socket server of permission changes:', error)
+      // Don't block response if notification fails
+    }
+
     const updatedUsers = await getUsersWithPermissions(workspaceId)
 
     return NextResponse.json({

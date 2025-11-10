@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Edge } from 'reactflow'
 import { useSession } from '@/lib/auth-client'
 import { createLogger } from '@/lib/logs/console/logger'
@@ -77,12 +77,12 @@ export function useCollaborativeWorkflow() {
     onWorkflowOperation,
     onSubblockUpdate,
     onVariableUpdate,
-    onUserJoined,
-    onUserLeft,
     onWorkflowDeleted,
     onWorkflowReverted,
     onOperationConfirmed,
     onOperationFailed,
+    onPermissionChanged,
+    onPermissionRevoked,
   } = useSocket()
 
   const { activeWorkflowId } = useWorkflowRegistry()
@@ -91,6 +91,15 @@ export function useCollaborativeWorkflow() {
   const variablesStore = useVariablesStore()
   const { data: session } = useSession()
   const { isShowingDiff } = useWorkflowDiffStore()
+
+  // Permission dialog state
+  const [permissionDialog, setPermissionDialog] = useState<{
+    open: boolean
+    type: 'changed' | 'revoked'
+    oldRole?: string
+    newRole?: string
+    workspaceId?: string
+  }>({ open: false, type: 'changed' })
 
   // Track if we're applying remote changes to avoid infinite loops
   const isApplyingRemoteChange = useRef(false)
@@ -437,14 +446,6 @@ export function useCollaborativeWorkflow() {
       }
     }
 
-    const handleUserJoined = (data: any) => {
-      logger.info(`User joined: ${data.userName}`)
-    }
-
-    const handleUserLeft = (data: any) => {
-      logger.info(`User left: ${data.userId}`)
-    }
-
     const handleWorkflowDeleted = (data: any) => {
       const { workflowId } = data
       logger.warn(`Workflow ${workflowId} has been deleted`)
@@ -555,16 +556,38 @@ export function useCollaborativeWorkflow() {
       failOperation(operationId, retryable)
     }
 
+    const handlePermissionChanged = (data: any) => {
+      logger.info(`Permission changed: ${data.oldRole} → ${data.newRole}`)
+
+      setPermissionDialog({
+        open: true,
+        type: 'changed',
+        oldRole: data.oldRole,
+        newRole: data.newRole,
+        workspaceId: data.workspaceId,
+      })
+    }
+
+    const handlePermissionRevoked = (data: any) => {
+      logger.warn('Access revoked from workspace')
+
+      setPermissionDialog({
+        open: true,
+        type: 'revoked',
+        workspaceId: data.workspaceId,
+      })
+    }
+
     // Register event handlers
     onWorkflowOperation(handleWorkflowOperation)
     onSubblockUpdate(handleSubblockUpdate)
     onVariableUpdate(handleVariableUpdate)
-    onUserJoined(handleUserJoined)
-    onUserLeft(handleUserLeft)
     onWorkflowDeleted(handleWorkflowDeleted)
     onWorkflowReverted(handleWorkflowReverted)
     onOperationConfirmed(handleOperationConfirmed)
     onOperationFailed(handleOperationFailed)
+    onPermissionChanged(handlePermissionChanged)
+    onPermissionRevoked(handlePermissionRevoked)
 
     return () => {
       // Cleanup handled by socket context
@@ -573,12 +596,12 @@ export function useCollaborativeWorkflow() {
     onWorkflowOperation,
     onSubblockUpdate,
     onVariableUpdate,
-    onUserJoined,
-    onUserLeft,
     onWorkflowDeleted,
     onWorkflowReverted,
     onOperationConfirmed,
     onOperationFailed,
+    onPermissionChanged,
+    onPermissionRevoked,
     workflowStore,
     subBlockStore,
     variablesStore,
@@ -1526,6 +1549,10 @@ export function useCollaborativeWorkflow() {
     // Workflow management
     joinWorkflow,
     leaveWorkflow,
+
+    // Permission dialog state
+    permissionDialog,
+    setPermissionDialog,
 
     // Collaborative operations
     collaborativeAddBlock,

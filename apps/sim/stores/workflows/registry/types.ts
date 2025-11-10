@@ -47,6 +47,12 @@ export interface WorkflowRegistryActions {
     apiKey?: string
   ) => void
   setWorkflowNeedsRedeployment: (workflowId: string | null, needsRedeployment: boolean) => void
+  logout: () => void
+  clearWorkflowsCache: () => void
+  // Incremental update methods for real-time collaboration
+  addWorkflow: (workflow: WorkflowMetadata) => void
+  updateWorkflowInRegistry: (id: string, updates: Partial<WorkflowMetadata>) => void
+  removeWorkflowFromRegistry: (id: string) => void
 }
 
 export type WorkflowRegistry = WorkflowRegistryState & WorkflowRegistryActions

@@ -3,7 +3,7 @@ import { Circle, CircleOff, Trash2 } from 'lucide-react'
 import { Tooltip } from '@/components/emcn'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 
 interface ActionBarProps {
   selectedCount: number

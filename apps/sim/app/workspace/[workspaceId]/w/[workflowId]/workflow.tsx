@@ -13,11 +13,12 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { createLogger } from '@/lib/logs/console/logger'
 import { TriggerUtils } from '@/lib/workflows/triggers'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import { DiffControls } from '@/app/workspace/[workspaceId]/w/[workflowId]/components'
 import { UserAvatarStack } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/control-bar/components/user-avatar-stack/user-avatar-stack'
 import { ErrorBoundary } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/error/index'
 import { Panel } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/panel-new'
+import { PermissionDialog } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/permission-dialog/permission-dialog'
 import { SubflowNodeComponent } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/subflows/subflow-node'
 import { Terminal } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/terminal'
 import { TrainingControls } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/training-controls/training-controls'
@@ -34,10 +35,11 @@ import {
   useCurrentWorkflow,
   useNodeUtilities,
 } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks'
+import { useWorkflowInit } from '@/app/workspace/[workspaceId]/w/[workflowId]/providers/workflow-initializer'
 import { filterEdgesFromTriggerBlocks } from '@/app/workspace/[workspaceId]/w/[workflowId]/utils/workflow-execution-utils'
 import { getBlock } from '@/blocks'
 import { useSocket } from '@/contexts/socket-context'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 import { useStreamCleanup } from '@/hooks/use-stream-cleanup'
 import { useWorkspacePermissions } from '@/hooks/use-workspace-permissions'
 import { useExecutionStore } from '@/stores/execution/store'
@@ -264,6 +266,8 @@ const WorkflowContent = React.memo(() => {
     collaborativeSetSubblockValue,
     undo,
     redo,
+    permissionDialog,
+    setPermissionDialog,
   } = useCollaborativeWorkflow()
 
   // Execution and debug mode state
@@ -1106,34 +1110,47 @@ const WorkflowContent = React.memo(() => {
     [project, isPointInLoopNode, getNodes]
   )
 
-  // Initialize workflow when it exists in registry and isn't active
+  // Workflow initialization is now handled by WorkflowInitializer provider
+  // Check if workflow is ready
+  const { isReady: isWorkflowInitReady, isInitializing: isWorkflowInitializing } = useWorkflowInit()
+
+  // Clear diff when workflow changes
   useEffect(() => {
     const currentId = params.workflowId as string
-    if (!currentId || !workflows[currentId]) return
-
-    if (activeWorkflowId !== currentId) {
-      // Clear diff and set as active
+    if (currentId && workflows[currentId]) {
       const { clearDiff } = useWorkflowDiffStore.getState()
       clearDiff()
-      setActiveWorkflow(currentId)
     }
-  }, [params.workflowId, workflows, activeWorkflowId, setActiveWorkflow])
+  }, [params.workflowId, workflows])
 
   // Track when workflow is ready for rendering
   useEffect(() => {
     const currentId = params.workflowId as string
 
     // Workflow is ready when:
-    // 1. We have an active workflow that matches the URL
-    // 2. The workflow exists in the registry
-    // 3. Workflows are not currently loading
+    // 1. WorkflowInitializer has completed initialization
+    // 2. We have an active workflow that matches the URL
+    // 3. The workflow exists in the registry
+    // 4. Workflows are not currently loading
     const shouldBeReady =
-      activeWorkflowId === currentId && Boolean(workflows[currentId]) && !isLoading
+      isWorkflowInitReady &&
+      !isWorkflowInitializing &&
+      activeWorkflowId === currentId &&
+      Boolean(workflows[currentId]) &&
+      !isLoading
 
     setIsWorkflowReady(shouldBeReady)
-  }, [activeWorkflowId, params.workflowId, workflows, isLoading])
+  }, [
+    isWorkflowInitReady,
+    isWorkflowInitializing,
+    activeWorkflowId,
+    params.workflowId,
+    workflows,
+    isLoading,
+  ])
 
-  const loadWorkspaceEnvironment = useEnvironmentStore((state) => state.loadWorkspaceEnvironment)
+  // Note: Workspace environment is now loaded by WorkspaceInitializer
+  // This effect maintains the cache clearing logic for workspace switches
   const clearWorkspaceEnvCache = useEnvironmentStore((state) => state.clearWorkspaceEnvCache)
   const prevWorkspaceIdRef = useRef<string | null>(null)
 
@@ -1142,10 +1159,8 @@ const WorkflowContent = React.memo(() => {
     if (prevWorkspaceIdRef.current && prevWorkspaceIdRef.current !== workspaceId) {
       clearWorkspaceEnvCache(prevWorkspaceIdRef.current)
     }
-    void loadWorkspaceEnvironment(workspaceId)
-
     prevWorkspaceIdRef.current = workspaceId
-  }, [workspaceId, loadWorkspaceEnvironment, clearWorkspaceEnvCache])
+  }, [workspaceId, clearWorkspaceEnvCache])
 
   // Handle navigation and validation
   useEffect(() => {
@@ -2031,6 +2046,21 @@ const WorkflowContent = React.memo(() => {
           onOpenChange={(open) => setTriggerWarning({ ...triggerWarning, open })}
           triggerName={triggerWarning.triggerName}
           type={triggerWarning.type}
+        />
+
+        {/* Permission change dialog */}
+        <PermissionDialog
+          open={permissionDialog.open}
+          onOpenChange={(open) =>
+            setPermissionDialog((prev) => ({
+              ...prev,
+              open,
+            }))
+          }
+          type={permissionDialog.type}
+          oldRole={permissionDialog.oldRole}
+          newRole={permissionDialog.newRole}
+          workspaceId={permissionDialog.workspaceId}
         />
 
         {/* Trigger list for empty workflows - only show after workflow has loaded and hydrated */}

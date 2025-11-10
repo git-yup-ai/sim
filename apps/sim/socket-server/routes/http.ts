@@ -112,6 +112,50 @@ export function createHttpHandler(roomManager: RoomManager, logger: Logger) {
       return
     }
 
+    // Handle permission change notifications from the main API
+    if (req.method === 'POST' && req.url === '/api/permission-changed') {
+      let body = ''
+      req.on('data', (chunk) => {
+        body += chunk.toString()
+      })
+      req.on('end', () => {
+        try {
+          const { userId, workspaceId, newRole, isRemoved } = JSON.parse(body)
+          roomManager.handlePermissionChange(userId, workspaceId, newRole, isRemoved)
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ success: true }))
+        } catch (error) {
+          logger.error('Error handling permission change notification:', error)
+          res.writeHead(500, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ error: 'Failed to process permission change notification' }))
+        }
+      })
+      return
+    }
+
+    // Handle workspace resource change notifications from the main API
+    if (req.method === 'POST' && req.url === '/api/workspace-resource-changed') {
+      let body = ''
+      req.on('data', (chunk) => {
+        body += chunk.toString()
+      })
+      req.on('end', () => {
+        try {
+          const { workspaceId, resourceType, operation, data } = JSON.parse(body)
+          roomManager.handleWorkspaceResourceChange(workspaceId, resourceType, operation, data)
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ success: true }))
+        } catch (error) {
+          logger.error('Error handling workspace resource change notification:', error)
+          res.writeHead(500, { 'Content-Type': 'application/json' })
+          res.end(
+            JSON.stringify({ error: 'Failed to process workspace resource change notification' })
+          )
+        }
+      })
+      return
+    }
+
     res.writeHead(404, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ error: 'Not found' }))
   }

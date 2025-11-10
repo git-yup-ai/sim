@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils'
 import {
   useUserPermissionsContext,
   useWorkspacePermissionsContext,
-} from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+} from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import type { WorkspacePermissions } from '@/hooks/use-workspace-permissions'
 import { API_ENDPOINTS } from '@/stores/constants'
 

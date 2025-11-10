@@ -8,7 +8,7 @@ import { useSession } from '@/lib/auth-client'
 import { getEnv, isTruthy } from '@/lib/env'
 import { createLogger } from '@/lib/logs/console/logger'
 import { generateWorkspaceName } from '@/lib/naming'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import { SearchModal } from '@/app/workspace/[workspaceId]/w/components/search-modal/search-modal'
 import {
   CreateMenu,
@@ -31,7 +31,7 @@ import {
   getKeyboardShortcutText,
   useGlobalShortcuts,
 } from '@/app/workspace/[workspaceId]/w/hooks/use-keyboard-shortcuts'
-import { useKnowledgeBasesList } from '@/hooks/use-knowledge'
+import { useKnowledgeBasesList } from '@/hooks/knowledge/use-knowledge'
 import { useSubscriptionStore } from '@/stores/subscription/store'
 import { useWorkflowDiffStore } from '@/stores/workflow-diff/store'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
@@ -597,20 +597,17 @@ export function Sidebar() {
     return count.toString()
   }
 
-  // Load workflows for the current workspace when workspaceId changes
+  // Validate workspace exists when workspaceId changes
   useEffect(() => {
     if (workspaceId) {
-      // Validate workspace exists before loading workflows
       isWorkspaceValid(workspaceId).then((valid) => {
-        if (valid) {
-          loadWorkflows(workspaceId)
-        } else {
+        if (!valid) {
           logger.warn(`Workspace ${workspaceId} no longer exists, triggering workspace refresh`)
           fetchWorkspaces() // This will handle the redirect through the fallback logic
         }
       })
     }
-  }, [workspaceId, loadWorkflows]) // Removed isWorkspaceValid and fetchWorkspaces dependencies
+  }, [workspaceId]) // Workflows loaded by WorkspaceInitializer
 
   // Initialize workspace data on mount (uses full validation with URL handling)
   useEffect(() => {

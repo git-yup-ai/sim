@@ -307,6 +307,21 @@ export async function DELETE(
     const elapsed = Date.now() - startTime
     logger.info(`[${requestId}] Successfully deleted workflow ${workflowId} in ${elapsed}ms`)
 
+    // Notify workspace members of workflow deletion (for real-time sync)
+    if (workflowData.workspaceId) {
+      const { notifyWorkspaceResourceChange } = await import(
+        '@/lib/realtime/notify-workspace-change'
+      )
+      await notifyWorkspaceResourceChange(
+        workflowData.workspaceId,
+        'workflows',
+        'delete',
+        { workflowId, name: workflowData.name },
+        workflowId,
+        logger
+      )
+    }
+
     // Notify Socket.IO system to disconnect users from this workflow's room
     // This prevents "Block not found" errors when collaborative updates try to process
     // after the workflow has been deleted
@@ -415,6 +430,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     logger.info(`[${requestId}] Successfully updated workflow ${workflowId} in ${elapsed}ms`, {
       updates: updateData,
     })
+
+    // Notify socket server of workflow update (only if workspace-scoped)
+    if (updatedWorkflow.workspaceId) {
+      const { notifyWorkspaceResourceChange } = await import(
+        '@/lib/realtime/notify-workspace-change'
+      )
+      await notifyWorkspaceResourceChange(
+        updatedWorkflow.workspaceId,
+        'workflows',
+        'update',
+        { workflowId, updates: updateData },
+        workflowId,
+        logger
+      )
+    }
 
     return NextResponse.json({ workflow: updatedWorkflow }, { status: 200 })
   } catch (error: any) {

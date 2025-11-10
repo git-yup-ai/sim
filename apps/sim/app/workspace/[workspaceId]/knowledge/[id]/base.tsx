@@ -44,8 +44,8 @@ import {
   PrimaryButton,
   SearchInput,
 } from '@/app/workspace/[workspaceId]/knowledge/components'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
-import { useKnowledgeBase, useKnowledgeBaseDocuments } from '@/hooks/use-knowledge'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
+import { useKnowledgeBase, useKnowledgeBaseDocuments } from '@/hooks/knowledge/use-knowledge'
 import { type DocumentData, useKnowledgeStore } from '@/stores/knowledge/store'
 
 const logger = createLogger('KnowledgeBase')

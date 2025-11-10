@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 
 /**
  * Hook for handling immediate tag dropdown selections

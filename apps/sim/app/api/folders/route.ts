@@ -118,6 +118,17 @@ export async function POST(request: NextRequest) {
 
     logger.info('Created new folder:', { id, name, workspaceId, parentId })
 
+    // Notify socket server of folder creation
+    const { notifyWorkspaceResourceChange } = await import('@/lib/realtime/notify-workspace-change')
+    await notifyWorkspaceResourceChange(
+      workspaceId,
+      'folders',
+      'create',
+      { folderId: id, name, parentId },
+      id,
+      logger
+    )
+
     return NextResponse.json({ folder: newFolder })
   } catch (error) {
     logger.error('Error creating folder:', { error })

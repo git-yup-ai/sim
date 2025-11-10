@@ -149,6 +149,28 @@ export async function POST(req: NextRequest) {
 
     logger.info(`[${requestId}] Successfully created empty workflow ${workflowId}`)
 
+    // Notify socket server of workflow creation (only if workspace-scoped)
+    if (workspaceId) {
+      const { notifyWorkspaceResourceChange } = await import(
+        '@/lib/realtime/notify-workspace-change'
+      )
+      await notifyWorkspaceResourceChange(
+        workspaceId,
+        'workflows',
+        'create',
+        {
+          workflowId,
+          name,
+          folderId,
+          color,
+          createdAt: now,
+          workspaceId,
+        },
+        workflowId,
+        logger
+      )
+    }
+
     return NextResponse.json({
       id: workflowId,
       name,

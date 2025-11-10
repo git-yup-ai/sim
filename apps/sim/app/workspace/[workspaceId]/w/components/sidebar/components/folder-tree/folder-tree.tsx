@@ -391,6 +391,7 @@ export function FolderTree({
   const workspaceId = params.workspaceId as string
   const workflowId = params.workflowId as string
   const {
+    folders,
     getFolderTree,
     expandedFolders,
     fetchFolders,
@@ -460,15 +461,23 @@ export function FolderTree({
     }
   }, [workspaceId])
 
-  // Fetch folders when workspace changes
+  // Fetch folders when workspace changes (only if not already loaded by WorkspaceInitializer)
   useEffect(() => {
     if (workspaceId) {
-      fetchFolders(workspaceId).then(() => {
-        // Clean up any existing deep nesting after folders are loaded
+      const hasFolders = Object.keys(folders).length > 0
+
+      // Only fetch if folders haven't been loaded yet (WorkspaceInitializer handles initial load)
+      if (!hasFolders && !foldersLoading) {
+        fetchFolders(workspaceId).then(() => {
+          // Clean up any existing deep nesting after folders are loaded
+          cleanupDeepNesting()
+        })
+      } else if (hasFolders) {
+        // If folders are already loaded, just clean up deep nesting
         cleanupDeepNesting()
-      })
+      }
     }
-  }, [workspaceId, fetchFolders, cleanupDeepNesting])
+  }, [workspaceId, fetchFolders, cleanupDeepNesting, folders, foldersLoading])
 
   useEffect(() => {
     clearSelection()

@@ -121,7 +121,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
 
       vi.mocked(getDocuments).mockResolvedValue({
@@ -163,7 +163,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
 
       vi.mocked(getDocuments).mockResolvedValue({
@@ -200,7 +200,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
 
       vi.mocked(getDocuments).mockResolvedValue({
@@ -284,7 +284,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
       vi.mocked(getDocuments).mockRejectedValue(new Error('Database error'))
 
@@ -314,7 +314,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseWriteAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
 
       const createdDocument = {
@@ -362,7 +362,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseWriteAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
 
       const invalidData = {
@@ -418,7 +418,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseWriteAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
 
       const createdDocuments = [
@@ -472,7 +472,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseWriteAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
 
       const invalidBulkData = {
@@ -512,7 +512,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseWriteAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
 
       const createdDocuments = [
@@ -605,7 +605,7 @@ describe('Knowledge Base Documents API Route', () => {
       mockAuth$.mockAuthenticatedUser()
       vi.mocked(checkKnowledgeBaseWriteAccess).mockResolvedValue({
         hasAccess: true,
-        knowledgeBase: { id: 'kb-123', userId: 'user-123' },
+        knowledgeBase: { id: 'kb-123', userId: 'user-123', workspaceId: 'ws-123', name: 'Test KB' },
       })
       vi.mocked(createSingleDocument).mockRejectedValue(new Error('Database error'))
 

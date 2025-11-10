@@ -10,6 +10,7 @@ export interface ProvidersStore {
   setModels: (provider: ProviderName, models: string[]) => void
   fetchModels: (provider: ProviderName) => Promise<void>
   getProvider: (provider: ProviderName) => ProviderState
+  hasLoadedModels: (provider: ProviderName) => boolean
 }
 
 export interface ProviderConfig {

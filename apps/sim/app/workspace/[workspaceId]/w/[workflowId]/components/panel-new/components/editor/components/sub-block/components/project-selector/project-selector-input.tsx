@@ -18,7 +18,7 @@ import { useDependsOnGate } from '@/app/workspace/[workspaceId]/w/[workflowId]/c
 import { useForeignCredential } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/hooks/use-foreign-credential'
 import { useSubBlockValue } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/hooks/use-sub-block-value'
 import type { SubBlockConfig } from '@/blocks/types'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 interface ProjectSelectorInputProps {

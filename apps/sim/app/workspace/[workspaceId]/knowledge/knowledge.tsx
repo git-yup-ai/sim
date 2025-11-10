@@ -33,8 +33,8 @@ import {
   filterKnowledgeBases,
   sortKnowledgeBases,
 } from '@/app/workspace/[workspaceId]/knowledge/utils/sort'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
-import { useKnowledgeBasesList } from '@/hooks/use-knowledge'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
+import { useKnowledgeBasesList } from '@/hooks/knowledge/use-knowledge'
 import type { KnowledgeBaseData } from '@/stores/knowledge/store'
 
 interface KnowledgeBaseWithDocCount extends KnowledgeBaseData {

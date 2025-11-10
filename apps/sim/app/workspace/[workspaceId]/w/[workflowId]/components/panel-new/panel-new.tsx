@@ -24,7 +24,7 @@ import {
   Trash,
 } from '@/components/emcn'
 import { createLogger } from '@/lib/logs/console/logger'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import { usePanelStore } from '@/stores/panel-new/store'
 import type { PanelTab } from '@/stores/panel-new/types'
 import { useWorkflowJsonStore } from '@/stores/workflows/json/store'

@@ -12,8 +12,8 @@ import {
 } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/components/tag-dropdown'
 import { useAccessibleReferencePrefixes } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-accessible-reference-prefixes'
 import type { SubBlockConfig } from '@/blocks/types'
-import { useKnowledgeBaseTagDefinitions } from '@/hooks/use-knowledge-base-tag-definitions'
-import { useTagSelection } from '@/hooks/use-tag-selection'
+import { useKnowledgeBaseTagDefinitions } from '@/hooks/knowledge/use-knowledge-base-tag-definitions'
+import { useTagSelection } from '@/hooks/knowledge/use-tag-selection'
 import { useSubBlockValue } from '../../hooks/use-sub-block-value'
 
 interface TagFilter {

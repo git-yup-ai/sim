@@ -950,6 +950,61 @@ export const useWorkflowRegistry = create<WorkflowRegistry>()(
 
         logger.info('Logout complete - all workflow data cleared')
       },
+
+      clearWorkflowsCache: () => {
+        logger.info('Clearing workflow cache for real-time sync')
+        set({
+          workflows: {},
+          deploymentStatuses: {},
+        })
+      },
+
+      // Incremental update methods for real-time collaboration (prevents page flash)
+      addWorkflow: (workflow: WorkflowMetadata) => {
+        logger.info(`Adding workflow ${workflow.id} to registry (real-time sync)`)
+        set((state) => ({
+          workflows: {
+            ...state.workflows,
+            [workflow.id]: workflow,
+          },
+        }))
+      },
+
+      updateWorkflowInRegistry: (id: string, updates: Partial<WorkflowMetadata>) => {
+        logger.info(`Updating workflow ${id} in registry (real-time sync)`, { updates })
+        set((state) => {
+          const existing = state.workflows[id]
+          if (!existing) {
+            logger.warn(`Cannot update workflow ${id} - not found in registry`)
+            return state
+          }
+
+          return {
+            workflows: {
+              ...state.workflows,
+              [id]: {
+                ...existing,
+                ...updates,
+              },
+            },
+          }
+        })
+      },
+
+      removeWorkflowFromRegistry: (id: string) => {
+        logger.info(`Removing workflow ${id} from registry (real-time sync)`)
+        set((state) => {
+          const { [id]: removed, ...remaining } = state.workflows
+          return {
+            workflows: remaining,
+            // Also remove deployment status if present
+            deploymentStatuses: (() => {
+              const { [id]: removedStatus, ...remainingStatuses } = state.deploymentStatuses
+              return remainingStatuses
+            })(),
+          }
+        })
+      },
     }),
     { name: 'workflow-registry' }
   )

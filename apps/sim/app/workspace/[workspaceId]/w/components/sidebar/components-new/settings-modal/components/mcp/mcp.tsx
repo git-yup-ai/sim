@@ -6,8 +6,8 @@ import { useParams } from 'next/navigation'
 import { Alert, AlertDescription, Button, Input, Skeleton } from '@/components/ui'
 import { createLogger } from '@/lib/logs/console/logger'
 import { checkEnvVarTrigger } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/components/env-var-dropdown'
-import { useMcpServerTest } from '@/hooks/use-mcp-server-test'
-import { useMcpTools } from '@/hooks/use-mcp-tools'
+import { useMcpServerTest } from '@/hooks/mcp/use-mcp-server-test'
+import { useMcpTools } from '@/hooks/mcp/use-mcp-tools'
 import { useMcpServersStore } from '@/stores/mcp-servers/store'
 import { AddServerForm } from './components/add-server-form'
 import type { McpServerFormData } from './types'
@@ -22,7 +22,6 @@ export function MCP() {
     servers,
     isLoading: serversLoading,
     error: serversError,
-    fetchServers,
     createServer,
     deleteServer,
   } = useMcpServersStore()
@@ -184,22 +183,13 @@ export function MCP() {
       setActiveInputField(null)
       setActiveHeaderIndex(null)
       clearTestResult()
-
-      refreshTools(true) // Force refresh after adding server
+      // Socket will automatically update servers via useWorkspaceMcpSocket
     } catch (error) {
       logger.error('Failed to add MCP server:', error)
     } finally {
       setIsAddingServer(false)
     }
-  }, [
-    formData,
-    testResult,
-    testConnection,
-    createServer,
-    refreshTools,
-    clearTestResult,
-    workspaceId,
-  ])
+  }, [formData, testResult, testConnection, createServer, clearTestResult, workspaceId])
 
   const handleRemoveServer = useCallback(
     async (serverId: string) => {
@@ -207,8 +197,7 @@ export function MCP() {
 
       try {
         await deleteServer(workspaceId, serverId)
-        await refreshTools(true)
-
+        // Socket will automatically update servers via useWorkspaceMcpSocket
         logger.info(`Removed MCP server: ${serverId}`)
       } catch (error) {
         logger.error('Failed to remove MCP server:', error)
@@ -225,13 +214,14 @@ export function MCP() {
         })
       }
     },
-    [deleteServer, refreshTools, workspaceId]
+    [deleteServer, workspaceId]
   )
 
+  // Note: MCP servers are now pre-loaded by WorkspaceInitializer provider
+  // We only need to refresh the tools list when this component mounts
   useEffect(() => {
-    fetchServers(workspaceId)
     refreshTools()
-  }, [fetchServers, refreshTools, workspaceId])
+  }, [refreshTools, workspaceId])
 
   const toolsByServer = (mcpTools || []).reduce(
     (acc, tool) => {

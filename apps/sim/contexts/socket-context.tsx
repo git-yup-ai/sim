@@ -55,19 +55,35 @@ interface SocketContextType {
 
   emitCursorUpdate: (cursor: { x: number; y: number } | null) => void
   emitSelectionUpdate: (selection: { type: 'block' | 'edge' | 'none'; id?: string }) => void
-  // Event handlers for receiving real-time updates
   onWorkflowOperation: (handler: (data: any) => void) => void
   onSubblockUpdate: (handler: (data: any) => void) => void
   onVariableUpdate: (handler: (data: any) => void) => void
 
   onCursorUpdate: (handler: (data: any) => void) => void
   onSelectionUpdate: (handler: (data: any) => void) => void
-  onUserJoined: (handler: (data: any) => void) => void
-  onUserLeft: (handler: (data: any) => void) => void
   onWorkflowDeleted: (handler: (data: any) => void) => void
   onWorkflowReverted: (handler: (data: any) => void) => void
   onOperationConfirmed: (handler: (data: any) => void) => void
   onOperationFailed: (handler: (data: any) => void) => void
+  onPermissionChanged: (handler: (data: any) => void) => void
+  onPermissionRevoked: (handler: (data: any) => void) => void
+
+  // Workspace room methods
+  joinWorkspace: (workspaceId: string) => void
+  leaveWorkspace: (workspaceId: string) => void
+
+  // Workspace resource event handlers
+  onWorkspaceEnvUpdated: (handler: (data: any) => void) => void
+  onWorkspaceToolCreated: (handler: (data: any) => void) => void
+  onWorkspaceToolUpdated: (handler: (data: any) => void) => void
+  onWorkspaceToolDeleted: (handler: (data: any) => void) => void
+  onWorkspaceFolderCreated: (handler: (data: any) => void) => void
+  onWorkspaceFolderUpdated: (handler: (data: any) => void) => void
+  onWorkspaceFolderDeleted: (handler: (data: any) => void) => void
+  onWorkspaceMcpUpdated: (handler: (data: any) => void) => void
+  onWorkspaceWorkflowCreated: (handler: (data: any) => void) => void
+  onWorkspaceWorkflowUpdated: (handler: (data: any) => void) => void
+  onWorkspaceWorkflowDeleted: (handler: (data: any) => void) => void
 }
 
 const SocketContext = createContext<SocketContextType>({
@@ -88,12 +104,25 @@ const SocketContext = createContext<SocketContextType>({
   onVariableUpdate: () => {},
   onCursorUpdate: () => {},
   onSelectionUpdate: () => {},
-  onUserJoined: () => {},
-  onUserLeft: () => {},
   onWorkflowDeleted: () => {},
   onWorkflowReverted: () => {},
   onOperationConfirmed: () => {},
   onOperationFailed: () => {},
+  onPermissionChanged: () => {},
+  onPermissionRevoked: () => {},
+  joinWorkspace: () => {},
+  leaveWorkspace: () => {},
+  onWorkspaceEnvUpdated: () => {},
+  onWorkspaceToolCreated: () => {},
+  onWorkspaceToolUpdated: () => {},
+  onWorkspaceToolDeleted: () => {},
+  onWorkspaceFolderCreated: () => {},
+  onWorkspaceFolderUpdated: () => {},
+  onWorkspaceFolderDeleted: () => {},
+  onWorkspaceMcpUpdated: () => {},
+  onWorkspaceWorkflowCreated: () => {},
+  onWorkspaceWorkflowUpdated: () => {},
+  onWorkspaceWorkflowDeleted: () => {},
 })
 
 export const useSocket = () => useContext(SocketContext)
@@ -108,6 +137,7 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
   const [isConnected, setIsConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(null)
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null)
   const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([])
   const initializedRef = useRef(false)
 
@@ -123,12 +153,25 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
 
     cursorUpdate?: (data: any) => void
     selectionUpdate?: (data: any) => void
-    userJoined?: (data: any) => void
-    userLeft?: (data: any) => void
     workflowDeleted?: (data: any) => void
     workflowReverted?: (data: any) => void
     operationConfirmed?: (data: any) => void
     operationFailed?: (data: any) => void
+    permissionChanged?: (data: any) => void
+    permissionRevoked?: (data: any) => void
+
+    // Workspace resource events
+    workspaceEnvUpdated?: (data: any) => void
+    workspaceToolCreated?: (data: any) => void
+    workspaceToolUpdated?: (data: any) => void
+    workspaceToolDeleted?: (data: any) => void
+    workspaceFolderCreated?: (data: any) => void
+    workspaceFolderUpdated?: (data: any) => void
+    workspaceFolderDeleted?: (data: any) => void
+    workspaceMcpUpdated?: (data: any) => void
+    workspaceWorkflowCreated?: (data: any) => void
+    workspaceWorkflowUpdated?: (data: any) => void
+    workspaceWorkflowDeleted?: (data: any) => void
   }>({})
 
   // Helper function to generate a fresh socket token
@@ -202,14 +245,11 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
             transport: socketInstance.io.engine?.transport?.name,
           })
 
-          // Automatically join the current workflow room based on URL
-          // This handles both initial connections and reconnections
           if (urlWorkflowId) {
             logger.info(`Joining workflow room after connection: ${urlWorkflowId}`)
             socketInstance.emit('join-workflow', {
               workflowId: urlWorkflowId,
             })
-            // Update our internal state to match the URL
             setCurrentWorkflowId(urlWorkflowId)
           }
         })
@@ -222,7 +262,6 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
             reason,
           })
 
-          // Clear presence when disconnected
           setPresenceUsers([])
         })
 
@@ -236,17 +275,12 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
             transport: error.transport,
           })
 
-          // Authentication errors now indicate either session expiry or token generation issues
           if (
             error.message?.includes('Token validation failed') ||
             error.message?.includes('Authentication failed') ||
             error.message?.includes('Authentication required')
           ) {
-            logger.warn(
-              'Authentication failed - this could indicate session expiry or token generation issues'
-            )
-            // The fresh token generation on each attempt should handle most cases automatically
-            // If this persists, user may need to refresh page or re-login
+            logger.warn('Authentication failed - check session or token generation')
           }
         })
 
@@ -257,7 +291,15 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
             socketId: socketInstance.id,
             transport: socketInstance.io.engine?.transport?.name,
           })
-          // Note: Workflow rejoining is handled by the 'connect' event which fires for both initial connections and reconnections
+
+          if (currentWorkspaceId) {
+            logger.info('Rejoining workspace room after reconnection', {
+              workspaceId: currentWorkspaceId,
+            })
+            socketInstance.emit('join-workspace', {
+              workspaceId: currentWorkspaceId,
+            })
+          }
         })
 
         socketInstance.on('reconnect_attempt', (attemptNumber) => {
@@ -280,12 +322,9 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
           setIsConnecting(false)
         })
 
-        // Presence events
         socketInstance.on('presence-update', (users: PresenceUser[]) => {
           setPresenceUsers(users)
         })
-
-        // Note: user-joined and user-left events removed in favor of authoritative presence-update
 
         // Workflow operation events
         socketInstance.on('workflow-operation', (data) => {
@@ -453,7 +492,73 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
           eventHandlers.current.selectionUpdate?.(data)
         })
 
-        // Enhanced error handling for new server events
+        // Permission change events
+        socketInstance.on('permission-changed', (data) => {
+          logger.info(`Permissions updated: ${data.oldRole} → ${data.newRole}`)
+          eventHandlers.current.permissionChanged?.(data)
+        })
+
+        socketInstance.on('permission-revoked', (data) => {
+          logger.warn('Workspace access revoked')
+          eventHandlers.current.permissionRevoked?.(data)
+        })
+
+        // Workspace resource change events
+        socketInstance.on('workspace-env-updated', (data) => {
+          logger.info(`Workspace environment variables updated: ${data.workspaceId}`)
+          eventHandlers.current.workspaceEnvUpdated?.(data)
+        })
+
+        socketInstance.on('workspace-tool-created', (data) => {
+          logger.info(`Custom tool created in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceToolCreated?.(data)
+        })
+
+        socketInstance.on('workspace-tool-updated', (data) => {
+          logger.info(`Custom tool updated in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceToolUpdated?.(data)
+        })
+
+        socketInstance.on('workspace-tool-deleted', (data) => {
+          logger.info(`Custom tool deleted in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceToolDeleted?.(data)
+        })
+
+        socketInstance.on('workspace-folder-created', (data) => {
+          logger.info(`Folder created in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceFolderCreated?.(data)
+        })
+
+        socketInstance.on('workspace-folder-updated', (data) => {
+          logger.info(`Folder updated in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceFolderUpdated?.(data)
+        })
+
+        socketInstance.on('workspace-folder-deleted', (data) => {
+          logger.info(`Folder deleted in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceFolderDeleted?.(data)
+        })
+
+        socketInstance.on('workspace-mcp-updated', (data) => {
+          logger.info(`MCP servers updated in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceMcpUpdated?.(data)
+        })
+
+        socketInstance.on('workspace-workflow-created', (data) => {
+          logger.info(`Workflow created in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceWorkflowCreated?.(data)
+        })
+
+        socketInstance.on('workspace-workflow-updated', (data) => {
+          logger.info(`Workflow updated in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceWorkflowUpdated?.(data)
+        })
+
+        socketInstance.on('workspace-workflow-deleted', (data) => {
+          logger.info(`Workflow deleted in workspace: ${data.workspaceId}`)
+          eventHandlers.current.workspaceWorkflowDeleted?.(data)
+        })
+
         socketInstance.on('error', (error) => {
           logger.error('Socket error:', error)
         })
@@ -464,11 +569,6 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
 
         socketInstance.on('operation-forbidden', (error) => {
           logger.warn('Operation forbidden:', error)
-          // Could show a toast notification to user
-        })
-
-        socketInstance.on('operation-confirmed', (data) => {
-          logger.debug('Operation confirmed:', data)
         })
 
         socketInstance.on('workflow-state', async (workflowData) => {
@@ -587,6 +687,37 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
       pendingPositionUpdates.current.clear()
     }
   }, [socket, currentWorkflowId])
+
+  // Join workspace room for workspace-level resource updates
+  const joinWorkspace = useCallback(
+    (workspaceId: string) => {
+      if (!socket || !user?.id) {
+        logger.warn('Cannot join workspace: socket or user not available')
+        return
+      }
+
+      logger.info(`Joining workspace: ${workspaceId}`)
+      socket.emit('join-workspace', {
+        workspaceId,
+      })
+      setCurrentWorkspaceId(workspaceId)
+    },
+    [socket, user]
+  )
+
+  // Leave workspace room
+  const leaveWorkspace = useCallback(
+    (workspaceId: string) => {
+      if (socket) {
+        logger.info(`Leaving workspace: ${workspaceId}`)
+        socket.emit('leave-workspace', {
+          workspaceId,
+        })
+        setCurrentWorkspaceId(null)
+      }
+    },
+    [socket]
+  )
 
   // Light throttling for position updates to ensure smooth collaborative movement
   const positionUpdateTimeouts = useRef<Map<string, number>>(new Map())
@@ -761,14 +892,6 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
     eventHandlers.current.selectionUpdate = handler
   }, [])
 
-  const onUserJoined = useCallback((handler: (data: any) => void) => {
-    eventHandlers.current.userJoined = handler
-  }, [])
-
-  const onUserLeft = useCallback((handler: (data: any) => void) => {
-    eventHandlers.current.userLeft = handler
-  }, [])
-
   const onWorkflowDeleted = useCallback((handler: (data: any) => void) => {
     eventHandlers.current.workflowDeleted = handler
   }, [])
@@ -783,6 +906,59 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
 
   const onOperationFailed = useCallback((handler: (data: any) => void) => {
     eventHandlers.current.operationFailed = handler
+  }, [])
+
+  const onPermissionChanged = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.permissionChanged = handler
+  }, [])
+
+  const onPermissionRevoked = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.permissionRevoked = handler
+  }, [])
+
+  // Workspace resource event callback registrations
+  const onWorkspaceEnvUpdated = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceEnvUpdated = handler
+  }, [])
+
+  const onWorkspaceToolCreated = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceToolCreated = handler
+  }, [])
+
+  const onWorkspaceToolUpdated = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceToolUpdated = handler
+  }, [])
+
+  const onWorkspaceToolDeleted = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceToolDeleted = handler
+  }, [])
+
+  const onWorkspaceFolderCreated = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceFolderCreated = handler
+  }, [])
+
+  const onWorkspaceFolderUpdated = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceFolderUpdated = handler
+  }, [])
+
+  const onWorkspaceFolderDeleted = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceFolderDeleted = handler
+  }, [])
+
+  const onWorkspaceMcpUpdated = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceMcpUpdated = handler
+  }, [])
+
+  const onWorkspaceWorkflowCreated = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceWorkflowCreated = handler
+  }, [])
+
+  const onWorkspaceWorkflowUpdated = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceWorkflowUpdated = handler
+  }, [])
+
+  const onWorkspaceWorkflowDeleted = useCallback((handler: (data: any) => void) => {
+    eventHandlers.current.workspaceWorkflowDeleted = handler
   }, [])
 
   return (
@@ -807,12 +983,27 @@ export function SocketProvider({ children, user }: SocketProviderProps) {
 
         onCursorUpdate,
         onSelectionUpdate,
-        onUserJoined,
-        onUserLeft,
         onWorkflowDeleted,
         onWorkflowReverted,
         onOperationConfirmed,
         onOperationFailed,
+        onPermissionChanged,
+        onPermissionRevoked,
+
+        // Workspace methods and callbacks
+        joinWorkspace,
+        leaveWorkspace,
+        onWorkspaceEnvUpdated,
+        onWorkspaceToolCreated,
+        onWorkspaceToolUpdated,
+        onWorkspaceToolDeleted,
+        onWorkspaceFolderCreated,
+        onWorkspaceFolderUpdated,
+        onWorkspaceFolderDeleted,
+        onWorkspaceMcpUpdated,
+        onWorkspaceWorkflowCreated,
+        onWorkspaceWorkflowUpdated,
+        onWorkspaceWorkflowDeleted,
       }}
     >
       {children}

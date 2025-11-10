@@ -96,6 +96,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     logger.info('Updated folder:', { id, updates })
 
+    // Notify socket server of folder update
+    const { notifyWorkspaceResourceChange } = await import('@/lib/realtime/notify-workspace-change')
+    await notifyWorkspaceResourceChange(
+      existingFolder.workspaceId,
+      'folders',
+      'update',
+      { folderId: id, updates },
+      id,
+      logger
+    )
+
     return NextResponse.json({ folder: updatedFolder })
   } catch (error) {
     logger.error('Error updating folder:', { error })
@@ -148,6 +159,17 @@ export async function DELETE(
       id,
       deletionStats,
     })
+
+    // Notify socket server of folder deletion
+    const { notifyWorkspaceResourceChange } = await import('@/lib/realtime/notify-workspace-change')
+    await notifyWorkspaceResourceChange(
+      existingFolder.workspaceId,
+      'folders',
+      'delete',
+      { folderId: id, name: existingFolder.name, deletionStats },
+      id,
+      logger
+    )
 
     return NextResponse.json({
       success: true,

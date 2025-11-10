@@ -79,6 +79,20 @@ export const PATCH = withMcpAuth('write')(
       mcpService.clearCache(workspaceId)
 
       logger.info(`[${requestId}] Successfully updated MCP server: ${serverId}`)
+
+      // Notify socket server of MCP server update
+      const { notifyWorkspaceResourceChange } = await import(
+        '@/lib/realtime/notify-workspace-change'
+      )
+      await notifyWorkspaceResourceChange(
+        workspaceId,
+        'mcp',
+        'update',
+        { serverId, updates: Object.keys(updateData) },
+        serverId,
+        logger
+      )
+
       return createMcpSuccessResponse({ server: updatedServer })
     } catch (error) {
       logger.error(`[${requestId}] Error updating MCP server:`, error)

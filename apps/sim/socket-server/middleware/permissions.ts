@@ -69,6 +69,26 @@ export async function verifyWorkspaceMembership(
   }
 }
 
+export async function verifyWorkspaceAccess(
+  userId: string,
+  workspaceId: string
+): Promise<{ hasAccess: boolean; role?: string }> {
+  try {
+    const userRole = await verifyWorkspaceMembership(userId, workspaceId)
+
+    if (!userRole) {
+      logger.warn(`User ${userId} is not a member of workspace ${workspaceId}`)
+      return { hasAccess: false }
+    }
+
+    logger.debug(`User ${userId} has ${userRole} access to workspace ${workspaceId}`)
+    return { hasAccess: true, role: userRole }
+  } catch (error) {
+    logger.error(`Error verifying workspace access for ${userId}:`, error)
+    return { hasAccess: false }
+  }
+}
+
 export async function verifyWorkflowAccess(
   userId: string,
   workflowId: string

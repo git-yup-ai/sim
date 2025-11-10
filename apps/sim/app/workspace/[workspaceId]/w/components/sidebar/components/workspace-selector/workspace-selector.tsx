@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { isDev } from '@/lib/environment'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn } from '@/lib/utils'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import { InviteModal } from '@/app/workspace/[workspaceId]/w/components/sidebar/components/workspace-selector/components/invite-modal/invite-modal'
 
 const logger = createLogger('WorkspaceSelector')

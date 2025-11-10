@@ -1,7 +1,7 @@
 import { shallow } from 'zustand/shallow'
-import { BlockPathCalculator } from '@/lib/block-path-calculator'
 import { createLogger } from '@/lib/logs/console/logger'
 import { getBlockOutputs } from '@/lib/workflows/block-outputs'
+import { BlockPathCalculator } from '@/lib/workflows/block-path-calculator'
 import { TriggerUtils } from '@/lib/workflows/triggers'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'

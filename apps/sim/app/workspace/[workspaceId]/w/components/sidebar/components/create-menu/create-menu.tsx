@@ -13,7 +13,7 @@ import {
   extractWorkflowsFromFiles,
   extractWorkflowsFromZip,
 } from '@/lib/workflows/import-export'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import { useFolderStore } from '@/stores/folders/store'
 import { useWorkflowDiffStore } from '@/stores/workflow-diff/store'
 import { parseWorkflowJson } from '@/stores/workflows/json/importer'

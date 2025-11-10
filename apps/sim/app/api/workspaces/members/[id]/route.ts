@@ -101,6 +101,27 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         )
       )
 
+    // Notify socket server of member removal
+    try {
+      const { env } = await import('@/lib/env')
+      const socketUrl = env.SOCKET_SERVER_URL || 'http://localhost:3002'
+      await fetch(`${socketUrl}/api/permission-changed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          workspaceId,
+          newRole: null,
+          isRemoved: true,
+        }),
+      }).catch((err) => {
+        logger.warn(`Failed to notify socket server of member removal for user ${userId}:`, err)
+      })
+    } catch (error) {
+      logger.warn('Error notifying socket server of member removal:', error)
+      // Don't block response if notification fails
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error('Error removing workspace member:', error)

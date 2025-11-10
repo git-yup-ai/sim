@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { type DiffStatus, hasDiffStatus } from '@/lib/workflows/diff/types'
 import { IterationBadges } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/subflows/components/iteration-badges/iteration-badges'
 import { useCurrentWorkflow } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 
 const SubflowNodeStyles: React.FC = () => {
   return (

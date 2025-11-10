@@ -24,9 +24,9 @@ import {
 } from '@/components/ui'
 import { MAX_TAG_SLOTS, type TagSlot } from '@/lib/knowledge/consts'
 import { createLogger } from '@/lib/logs/console/logger'
-import { useKnowledgeBaseTagDefinitions } from '@/hooks/use-knowledge-base-tag-definitions'
-import { useNextAvailableSlot } from '@/hooks/use-next-available-slot'
-import { type TagDefinitionInput, useTagDefinitions } from '@/hooks/use-tag-definitions'
+import { useKnowledgeBaseTagDefinitions } from '@/hooks/knowledge/use-knowledge-base-tag-definitions'
+import { useNextAvailableSlot } from '@/hooks/knowledge/use-next-available-slot'
+import { type TagDefinitionInput, useTagDefinitions } from '@/hooks/knowledge/use-tag-definitions'
 
 const logger = createLogger('DocumentTagEntry')
 

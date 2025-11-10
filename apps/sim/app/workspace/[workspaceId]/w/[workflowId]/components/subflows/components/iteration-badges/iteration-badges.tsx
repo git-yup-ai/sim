@@ -10,7 +10,7 @@ import {
   checkTagTrigger,
   TagDropdown,
 } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/components/tag-dropdown'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 import { useWorkflowStore } from '@/stores/workflows/workflow/store'
 import 'prismjs/components/prism-javascript'
 import 'prismjs/themes/prism.css'

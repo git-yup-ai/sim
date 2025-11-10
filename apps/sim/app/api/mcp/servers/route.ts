@@ -120,6 +120,19 @@ export const POST = withMcpAuth('write')(
         // Silently fail
       }
 
+      // Notify socket server of MCP server creation
+      const { notifyWorkspaceResourceChange } = await import(
+        '@/lib/realtime/notify-workspace-change'
+      )
+      await notifyWorkspaceResourceChange(
+        workspaceId,
+        'mcp',
+        'create',
+        { serverId, name: body.name },
+        serverId,
+        logger
+      )
+
       return createMcpSuccessResponse({ serverId }, 201)
     } catch (error) {
       logger.error(`[${requestId}] Error registering MCP server:`, error)
@@ -167,6 +180,20 @@ export const DELETE = withMcpAuth('admin')(
       mcpService.clearCache(workspaceId)
 
       logger.info(`[${requestId}] Successfully deleted MCP server: ${serverId}`)
+
+      // Notify socket server of MCP server deletion
+      const { notifyWorkspaceResourceChange } = await import(
+        '@/lib/realtime/notify-workspace-change'
+      )
+      await notifyWorkspaceResourceChange(
+        workspaceId,
+        'mcp',
+        'delete',
+        { serverId, name: deletedServer.name },
+        serverId,
+        logger
+      )
+
       return createMcpSuccessResponse({ message: `Server ${serverId} deleted successfully` })
     } catch (error) {
       logger.error(`[${requestId}] Error deleting MCP server:`, error)

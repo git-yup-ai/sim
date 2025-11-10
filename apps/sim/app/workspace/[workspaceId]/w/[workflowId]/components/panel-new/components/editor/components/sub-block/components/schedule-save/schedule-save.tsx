@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { createLogger } from '@/lib/logs/console/logger'
 import { parseCronToHumanReadable } from '@/lib/schedules/utils'
 import { cn } from '@/lib/utils'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 import { useScheduleManagement } from '@/hooks/use-schedule-management'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'
 

@@ -1,17 +1,13 @@
 'use client'
 
-import type React from 'react'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { createLogger } from '@/lib/logs/console/logger'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 import { useUserPermissions, type WorkspaceUserPermissions } from '@/hooks/use-user-permissions'
 import {
   useWorkspacePermissions,
   type WorkspacePermissions,
 } from '@/hooks/use-workspace-permissions'
-
-const logger = createLogger('WorkspacePermissionsProvider')
 
 interface WorkspacePermissionsContextType {
   // Raw workspace permissions data
@@ -45,15 +41,14 @@ const WorkspacePermissionsContext = createContext<WorkspacePermissionsContextTyp
   setOfflineMode: () => {},
 })
 
-interface WorkspacePermissionsProviderProps {
-  children: React.ReactNode
-}
-
 /**
- * Provider that manages workspace permissions and user access
- * Also provides connection-aware permissions that enforce read-only mode when offline
+ * Provider for workspace permissions and user permissions
+ *
+ * NOTE: This provider must be used within a component that has access to
+ * useCollaborativeWorkflow() (i.e., within the workspace scope) because it
+ * depends on the collaborative workflow state to detect operation errors.
  */
-export function WorkspacePermissionsProvider({ children }: WorkspacePermissionsProviderProps) {
+export function WorkspacePermissionsProvider({ children }: { children: React.ReactNode }) {
   const params = useParams()
   const workspaceId = params?.workspaceId as string
 
@@ -85,9 +80,6 @@ export function WorkspacePermissionsProvider({ children }: WorkspacePermissionsP
     permissionsLoading,
     permissionsError
   )
-
-  // Note: Connection-based error detection removed - only rely on operation timeouts
-  // The 5-second operation timeout system will handle all error cases
 
   // Create connection-aware permissions that override user permissions when offline
   const userPermissions = useMemo((): WorkspaceUserPermissions & { isOfflineMode?: boolean } => {
@@ -145,7 +137,7 @@ export function useWorkspacePermissionsContext(): WorkspacePermissionsContextTyp
   const context = useContext(WorkspacePermissionsContext)
   if (!context) {
     throw new Error(
-      'useWorkspacePermissionsContext must be used within a WorkspacePermissionsProvider'
+      'useWorkspacePermissionsContext must be used within WorkspacePermissionsProvider'
     )
   }
   return context

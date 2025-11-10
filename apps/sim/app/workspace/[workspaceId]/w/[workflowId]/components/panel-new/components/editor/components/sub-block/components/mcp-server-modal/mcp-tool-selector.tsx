@@ -15,7 +15,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useSubBlockValue } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/hooks/use-sub-block-value'
 import type { SubBlockConfig } from '@/blocks/types'
-import { useMcpTools } from '@/hooks/use-mcp-tools'
+import { useMcpTools } from '@/hooks/mcp/use-mcp-tools'
 
 interface McpToolSelectorProps {
   blockId: string

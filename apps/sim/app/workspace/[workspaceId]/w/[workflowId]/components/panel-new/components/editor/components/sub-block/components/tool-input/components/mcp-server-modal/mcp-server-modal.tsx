@@ -28,7 +28,7 @@ import {
 } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/components/env-var-dropdown'
 import { formatDisplayText } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/components/formatted-text'
 import { useAccessibleReferencePrefixes } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-accessible-reference-prefixes'
-import { useMcpServerTest } from '@/hooks/use-mcp-server-test'
+import { useMcpServerTest } from '@/hooks/mcp/use-mcp-server-test'
 import { useMcpServersStore } from '@/stores/mcp-servers/store'
 
 const logger = createLogger('McpServerModal')

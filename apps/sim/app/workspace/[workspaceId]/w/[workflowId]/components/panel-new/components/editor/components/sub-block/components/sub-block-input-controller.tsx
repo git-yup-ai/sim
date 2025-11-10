@@ -3,7 +3,7 @@ import { EnvVarDropdown } from '@/app/workspace/[workspaceId]/w/[workflowId]/com
 import { TagDropdown } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/components/tag-dropdown'
 import { useSubBlockInput } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/hooks/use-sub-block-input'
 import type { SubBlockConfig } from '@/blocks/types'
-import { useTagSelection } from '@/hooks/use-tag-selection'
+import { useTagSelection } from '@/hooks/knowledge/use-tag-selection'
 
 /**
  * Props for the headless SubBlockInputController.

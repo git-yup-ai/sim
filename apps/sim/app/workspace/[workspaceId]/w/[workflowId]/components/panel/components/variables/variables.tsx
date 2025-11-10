@@ -24,7 +24,7 @@ import {
 } from '@/components/ui'
 import { createLogger } from '@/lib/logs/console/logger'
 import { cn, validateName } from '@/lib/utils'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 import { useVariablesStore } from '@/stores/panel/variables/store'
 import type { Variable, VariableType } from '@/stores/panel/variables/types'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'

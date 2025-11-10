@@ -28,11 +28,11 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MAX_TAG_SLOTS } from '@/lib/knowledge/consts'
 import { createLogger } from '@/lib/logs/console/logger'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import {
   type TagDefinition,
   useKnowledgeBaseTagDefinitions,
-} from '@/hooks/use-knowledge-base-tag-definitions'
+} from '@/hooks/knowledge/use-knowledge-base-tag-definitions'
 import { DocumentList } from './components/document-list'
 
 const logger = createLogger('KnowledgeBaseTags')

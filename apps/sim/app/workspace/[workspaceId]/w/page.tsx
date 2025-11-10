@@ -1,42 +1,26 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { createLogger } from '@/lib/logs/console/logger'
+import { useWorkspaceInit } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 
 const logger = createLogger('WorkflowsPage')
 
 export default function WorkflowsPage() {
   const router = useRouter()
-  const { workflows, isLoading, loadWorkflows, setActiveWorkflow } = useWorkflowRegistry()
-  const [hasInitialized, setHasInitialized] = useState(false)
+  const { workflows, setActiveWorkflow } = useWorkflowRegistry()
+  const { isReady, isInitializing } = useWorkspaceInit()
 
   const params = useParams()
   const workspaceId = params.workspaceId as string
 
-  // Initialize workspace workflows
+  // Handle redirection once workspace is ready
   useEffect(() => {
-    const initializeWorkspace = async () => {
-      try {
-        await loadWorkflows(workspaceId)
-        setHasInitialized(true)
-      } catch (error) {
-        logger.error('Failed to load workflows for workspace:', error)
-        setHasInitialized(true) // Still mark as initialized to show error state
-      }
-    }
-
-    if (!hasInitialized) {
-      initializeWorkspace()
-    }
-  }, [workspaceId, loadWorkflows, hasInitialized])
-
-  // Handle redirection once workflows are loaded
-  useEffect(() => {
-    // Only proceed if we've initialized and workflows are not loading
-    if (!hasInitialized || isLoading) return
+    // Wait for workspace initialization to complete
+    if (!isReady || isInitializing) return
 
     const workflowIds = Object.keys(workflows)
 
@@ -54,8 +38,10 @@ export default function WorkflowsPage() {
       setActiveWorkflow(firstWorkflowId).then(() => {
         router.replace(`/workspace/${workspaceId}/w/${firstWorkflowId}`)
       })
+    } else {
+      logger.warn(`No workflows found for workspace ${workspaceId}`)
     }
-  }, [hasInitialized, isLoading, workflows, workspaceId, router, setActiveWorkflow])
+  }, [isReady, isInitializing, workflows, workspaceId, router, setActiveWorkflow])
 
   // Always show loading state until redirect happens
   // There should always be a default workflow, so we never show "no workflows found"

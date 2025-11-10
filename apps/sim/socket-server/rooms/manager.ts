@@ -41,9 +41,18 @@ export interface WorkflowRoom {
   activeConnections: number
 }
 
+export interface WorkspaceRoom {
+  workspaceId: string
+  users: Set<string> // socketIds
+  lastModified: number
+  activeConnections: number
+}
+
 export class RoomManager {
   private workflowRooms = new Map<string, WorkflowRoom>()
+  private workspaceRooms = new Map<string, WorkspaceRoom>()
   private socketToWorkflow = new Map<string, string>()
+  private socketToWorkspace = new Map<string, { workspaceId: string; role: string }>()
   private userSessions = new Map<
     string,
     { userId: string; userName: string; avatarUrl?: string | null }
@@ -95,7 +104,7 @@ export class RoomManager {
     })
 
     const socketsToDisconnect: string[] = []
-    room.users.forEach((_presence, socketId) => {
+    room.users.forEach((_, socketId) => {
       socketsToDisconnect.push(socketId)
     })
 
@@ -145,8 +154,6 @@ export class RoomManager {
 
     const timestamp = Date.now()
 
-    // Notify all clients in the workflow room that the workflow has been updated
-    // This will trigger them to refresh their local state
     this.io.to(workflowId).emit('workflow-updated', {
       workflowId,
       message: 'Workflow has been updated externally',
@@ -169,7 +176,6 @@ export class RoomManager {
 
     const timestamp = Date.now()
 
-    // Emit special event for copilot edits that tells clients to rehydrate from database
     this.io.to(workflowId).emit('copilot-workflow-edit', {
       workflowId,
       description,
@@ -180,6 +186,80 @@ export class RoomManager {
     room.lastModified = timestamp
 
     logger.info(`Notified ${room.users.size} users about copilot workflow edit: ${workflowId}`)
+  }
+
+  handlePermissionChange(
+    userId: string,
+    workspaceId: string,
+    newRole: string | null,
+    isRemoved: boolean
+  ) {
+    logger.info(`Handling permission change for user ${userId} in workspace ${workspaceId}`)
+
+    // Find all workflow rooms where this user is present
+    const affectedRooms: WorkflowRoom[] = []
+
+    for (const room of this.workflowRooms.values()) {
+      const userSockets = Array.from(room.users.values()).filter((u) => u.userId === userId)
+      if (userSockets.length > 0) {
+        affectedRooms.push(room)
+      }
+    }
+
+    if (affectedRooms.length === 0) {
+      logger.info(`No active sessions found for user ${userId} in workspace ${workspaceId}`)
+      return
+    }
+
+    logger.info(`Found ${affectedRooms.length} active room(s) for user ${userId}`)
+
+    for (const room of affectedRooms) {
+      const userSockets = Array.from(room.users.entries()).filter(
+        ([_, presence]) => presence.userId === userId
+      )
+
+      for (const [socketId, presence] of userSockets) {
+        const socket = this.io.sockets.sockets.get(socketId)
+
+        if (isRemoved) {
+          // Force disconnect - access completely revoked
+          if (socket) {
+            socket.emit('permission-revoked', {
+              workspaceId,
+              message: 'Your access to this workspace has been removed',
+              timestamp: Date.now(),
+            })
+            socket.leave(room.workflowId)
+          }
+          this.cleanupUserFromRoom(socketId, room.workflowId)
+          logger.info(`Disconnected user ${userId} from workflow ${room.workflowId}`)
+        } else {
+          // Update cached role
+          const oldRole = presence.role
+          presence.role = newRole!
+
+          // Notify user of permission change
+          if (socket) {
+            socket.emit('permission-changed', {
+              workspaceId,
+              workflowId: room.workflowId,
+              oldRole,
+              newRole,
+              message: 'Your permissions have been updated',
+              timestamp: Date.now(),
+            })
+          }
+          logger.info(
+            `Updated role for user ${userId} in workflow ${room.workflowId}: ${oldRole} → ${newRole}`
+          )
+        }
+      }
+
+      // Broadcast presence update to reflect any changes
+      this.broadcastPresenceUpdate(room.workflowId)
+    }
+
+    logger.info(`Permission change processed for user ${userId}`)
   }
 
   async validateWorkflowConsistency(
@@ -287,5 +367,107 @@ export class RoomManager {
     })
 
     return uniqueUsers.size
+  }
+
+  // ===== Workspace Room Methods =====
+
+  createWorkspaceRoom(workspaceId: string): WorkspaceRoom {
+    return {
+      workspaceId,
+      users: new Set(),
+      lastModified: Date.now(),
+      activeConnections: 0,
+    }
+  }
+
+  cleanupUserFromWorkspaceRoom(socketId: string, workspaceId: string) {
+    const room = this.workspaceRooms.get(workspaceId)
+    if (room) {
+      room.users.delete(socketId)
+      room.activeConnections = Math.max(0, room.activeConnections - 1)
+
+      if (room.activeConnections === 0) {
+        this.workspaceRooms.delete(workspaceId)
+        logger.info(`Cleaned up empty workspace room: ${workspaceId}`)
+      }
+    }
+
+    this.socketToWorkspace.delete(socketId)
+  }
+
+  hasWorkspaceRoom(workspaceId: string): boolean {
+    return this.workspaceRooms.has(workspaceId)
+  }
+
+  getWorkspaceRoom(workspaceId: string): WorkspaceRoom | undefined {
+    return this.workspaceRooms.get(workspaceId)
+  }
+
+  setWorkspaceRoom(workspaceId: string, room: WorkspaceRoom): void {
+    this.workspaceRooms.set(workspaceId, room)
+  }
+
+  getWorkspaceIdForSocket(socketId: string): string | undefined {
+    return this.socketToWorkspace.get(socketId)?.workspaceId
+  }
+
+  setSocketWorkspace(socketId: string, workspaceId: string, role: string): void {
+    this.socketToWorkspace.set(socketId, { workspaceId, role })
+  }
+
+  getWorkspaceRoleForSocket(socketId: string): string | undefined {
+    return this.socketToWorkspace.get(socketId)?.role
+  }
+
+  emitToWorkspace<T = unknown>(workspaceId: string, event: string, payload: T): void {
+    this.io.to(workspaceId).emit(event, payload)
+  }
+
+  /**
+   * Handle workspace resource changes and broadcast to all workspace members
+   * @param workspaceId - The workspace where the resource changed
+   * @param resourceType - Type of resource (env, tools, folders, mcp, workflows)
+   * @param operation - Operation performed (create, update, delete)
+   * @param data - The resource data
+   */
+  handleWorkspaceResourceChange(
+    workspaceId: string,
+    resourceType: 'env' | 'tools' | 'folders' | 'mcp' | 'workflows',
+    operation: 'create' | 'update' | 'delete',
+    data: any
+  ) {
+    logger.info(`Handling ${resourceType} ${operation} notification for workspace ${workspaceId}`)
+
+    const room = this.workspaceRooms.get(workspaceId)
+    if (!room) {
+      logger.debug(`No active workspace room found for ${workspaceId}`)
+      return
+    }
+
+    const timestamp = Date.now()
+    room.lastModified = timestamp
+
+    // Emit appropriate event based on resource type
+    const eventMap = {
+      env: 'workspace-env-updated',
+      tools: `workspace-tool-${operation}d`, // create → created, update → updated, delete → deleted
+      folders: `workspace-folder-${operation}d`,
+      mcp: 'workspace-mcp-updated',
+      workflows: `workspace-workflow-${operation}d`, // create → created, update → updated, delete → deleted
+    }
+
+    const event = eventMap[resourceType]
+
+    this.io.to(workspaceId).emit(event, {
+      workspaceId,
+      resourceType,
+      operation,
+      data,
+      timestamp,
+    })
+
+    logger.info(
+      `Notified ${room.activeConnections} users about ${resourceType} ${operation} in workspace ${workspaceId}`
+    )
   }
 }

@@ -40,7 +40,7 @@ import { ToolCommand } from '@/app/workspace/[workspaceId]/w/[workflowId]/compon
 import { ToolCredentialSelector } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/components/tool-input/components/tool-credential-selector'
 import { useSubBlockValue } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/panel-new/components/editor/components/sub-block/hooks/use-sub-block-value'
 import { getAllBlocks } from '@/blocks'
-import { useMcpTools } from '@/hooks/use-mcp-tools'
+import { useMcpTools } from '@/hooks/mcp/use-mcp-tools'
 import { getProviderFromModel, supportsToolUsageControl } from '@/providers/utils'
 import { useCustomToolsStore } from '@/stores/custom-tools/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'

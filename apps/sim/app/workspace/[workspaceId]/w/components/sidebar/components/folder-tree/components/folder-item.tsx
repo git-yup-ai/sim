@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { createLogger } from '@/lib/logs/console/logger'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import { type FolderTreeNode, useFolderStore } from '@/stores/folders/store'
 
 const logger = createLogger('FolderItem')

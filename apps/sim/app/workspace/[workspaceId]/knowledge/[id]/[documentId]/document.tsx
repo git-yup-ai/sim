@@ -14,8 +14,8 @@ import {
 } from '@/app/workspace/[workspaceId]/knowledge/[id]/[documentId]/components'
 import { ActionBar } from '@/app/workspace/[workspaceId]/knowledge/[id]/components'
 import { KnowledgeHeader, SearchInput } from '@/app/workspace/[workspaceId]/knowledge/components'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
-import { useDocumentChunks } from '@/hooks/use-knowledge'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
+import { useDocumentChunks } from '@/hooks/knowledge/use-knowledge'
 import { type ChunkData, type DocumentData, useKnowledgeStore } from '@/stores/knowledge/store'
 
 const logger = createLogger('Document')

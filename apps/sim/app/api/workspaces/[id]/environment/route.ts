@@ -155,6 +155,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         set: { variables: merged, updatedAt: new Date() },
       })
 
+    // Notify socket server of workspace environment update
+    const { notifyWorkspaceResourceChange } = await import('@/lib/realtime/notify-workspace-change')
+    await notifyWorkspaceResourceChange(
+      workspaceId,
+      'env',
+      'update',
+      { keys: Object.keys(variables) },
+      workspaceId,
+      logger
+    )
+
     return NextResponse.json({ success: true })
   } catch (error: any) {
     logger.error(`[${requestId}] Workspace env PUT error`, error)
@@ -220,6 +231,10 @@ export async function DELETE(
         target: [workspaceEnvironment.workspaceId],
         set: { variables: current, updatedAt: new Date() },
       })
+
+    // Notify socket server of workspace environment deletion
+    const { notifyWorkspaceResourceChange } = await import('@/lib/realtime/notify-workspace-change')
+    await notifyWorkspaceResourceChange(workspaceId, 'env', 'delete', { keys }, workspaceId, logger)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

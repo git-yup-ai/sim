@@ -2,8 +2,8 @@ import { memo, useCallback } from 'react'
 import { ArrowLeftRight, ArrowUpDown, Circle, CircleOff, LogOut } from 'lucide-react'
 import { Button, Duplicate, Tooltip, Trash2 } from '@/components/emcn'
 import { cn } from '@/lib/utils'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 import { useWorkflowStore } from '@/stores/workflows/workflow/store'
 
 /**

@@ -34,7 +34,7 @@ import { WandPromptBar } from '@/app/workspace/[workspaceId]/w/[workflowId]/comp
 import { useAccessibleReferencePrefixes } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-accessible-reference-prefixes'
 import { useWand } from '@/app/workspace/[workspaceId]/w/[workflowId]/hooks/use-wand'
 import type { GenerationType } from '@/blocks/types'
-import { useTagSelection } from '@/hooks/use-tag-selection'
+import { useTagSelection } from '@/hooks/knowledge/use-tag-selection'
 import { normalizeBlockName } from '@/stores/workflows/utils'
 
 const logger = createLogger('Code')

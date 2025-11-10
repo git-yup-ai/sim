@@ -1,7 +1,7 @@
 import { shallow } from 'zustand/shallow'
-import { BlockPathCalculator } from '@/lib/block-path-calculator'
 import { extractFieldsFromSchema, parseResponseFormatSafely } from '@/lib/response-format'
 import { getBlockOutputs } from '@/lib/workflows/block-outputs'
+import { BlockPathCalculator } from '@/lib/workflows/block-path-calculator'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'
 import { useWorkflowStore } from '@/stores/workflows/workflow/store'

@@ -34,11 +34,8 @@ export function CustomTools() {
   const [editingTool, setEditingTool] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
 
-  useEffect(() => {
-    if (workspaceId) {
-      fetchTools(workspaceId)
-    }
-  }, [workspaceId, fetchTools])
+  // Note: Custom tools are now pre-loaded by WorkspaceInitializer provider
+  // No need to fetch on mount - data is already available
 
   // Clear store errors when modal opens (errors should show in modal, not in settings)
   useEffect(() => {
@@ -66,10 +63,7 @@ export function CustomTools() {
       // Pass null workspaceId for user-scoped tools (legacy tools without workspaceId)
       await deleteTool(tool.workspaceId ?? null, toolId)
       logger.info(`Deleted custom tool: ${toolId}`)
-      // Silently refresh the list - no toast notification
-      if (workspaceId) {
-        await fetchTools(workspaceId)
-      }
+      // Socket will automatically update the list via useWorkspaceToolsSocket
     } catch (error) {
       logger.error('Error deleting custom tool:', error)
       // Silently handle error - no toast notification
@@ -85,9 +79,7 @@ export function CustomTools() {
   const handleToolSaved = () => {
     setShowAddForm(false)
     setEditingTool(null)
-    if (workspaceId) {
-      fetchTools(workspaceId)
-    }
+    // Socket will automatically update the list via useWorkspaceToolsSocket
   }
 
   return (

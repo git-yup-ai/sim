@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { TAG_SLOTS, type TagSlot } from '@/lib/knowledge/consts'
-import { useKnowledgeBaseTagDefinitions } from '@/hooks/use-knowledge-base-tag-definitions'
+import { useKnowledgeBaseTagDefinitions } from '@/hooks/knowledge/use-knowledge-base-tag-definitions'
 
 export type TagData = {
   [K in TagSlot]?: string

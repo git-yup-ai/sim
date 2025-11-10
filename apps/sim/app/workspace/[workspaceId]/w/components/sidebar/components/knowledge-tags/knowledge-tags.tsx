@@ -20,13 +20,13 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { MAX_TAG_SLOTS, TAG_SLOTS, type TagSlot } from '@/lib/knowledge/consts'
 import { createLogger } from '@/lib/logs/console/logger'
 import type { DocumentTag } from '@/app/workspace/[workspaceId]/knowledge/components/document-tag-entry/document-tag-entry'
-import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
+import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-initializer'
 import {
   type TagDefinition,
   useKnowledgeBaseTagDefinitions,
-} from '@/hooks/use-knowledge-base-tag-definitions'
-import { useNextAvailableSlot } from '@/hooks/use-next-available-slot'
-import { type TagDefinitionInput, useTagDefinitions } from '@/hooks/use-tag-definitions'
+} from '@/hooks/knowledge/use-knowledge-base-tag-definitions'
+import { useNextAvailableSlot } from '@/hooks/knowledge/use-next-available-slot'
+import { type TagDefinitionInput, useTagDefinitions } from '@/hooks/knowledge/use-tag-definitions'
 import { type DocumentData, useKnowledgeStore } from '@/stores/knowledge/store'
 
 const logger = createLogger('KnowledgeTags')

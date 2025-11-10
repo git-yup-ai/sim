@@ -7,7 +7,7 @@
 import { useStore } from 'reactflow'
 import { Button, Redo, Undo } from '@/components/emcn'
 import { useSession } from '@/lib/auth-client'
-import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
+import { useCollaborativeWorkflow } from '@/hooks/collaborative/use-collaborative-workflow'
 import { useUndoRedoStore } from '@/stores/undo-redo'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 

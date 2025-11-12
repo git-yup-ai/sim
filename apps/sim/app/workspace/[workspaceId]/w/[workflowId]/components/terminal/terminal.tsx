@@ -658,7 +658,7 @@ export function Terminal() {
       window.removeEventListener('resize', handleResize)
       observer.disconnect()
     }
-  }, [selectedEntry, outputPanelWidth])
+  }, [selectedEntry, outputPanelWidth, setOutputPanelWidth])
 
   return (
     <>

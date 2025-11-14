@@ -7,6 +7,9 @@ import { snowflakeListViewsTool } from '@/tools/snowflake/list_views'
 import { snowflakeListWarehousesTool } from '@/tools/snowflake/list_warehouses'
 import { snowflakeListFileFormatsTool } from '@/tools/snowflake/list_file_formats'
 import { snowflakeListStagesTool } from '@/tools/snowflake/list_stages'
+import { snowflakeInsertRowsTool } from '@/tools/snowflake/insert_rows'
+import { snowflakeUpdateRowsTool } from '@/tools/snowflake/update_rows'
+import { snowflakeDeleteRowsTool } from '@/tools/snowflake/delete_rows'
 
 export {
   snowflakeExecuteQueryTool,
@@ -18,5 +21,8 @@ export {
   snowflakeListWarehousesTool,
   snowflakeListFileFormatsTool,
   snowflakeListStagesTool,
+  snowflakeInsertRowsTool,
+  snowflakeUpdateRowsTool,
+  snowflakeDeleteRowsTool,
 }
 
